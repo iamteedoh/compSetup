@@ -6,10 +6,12 @@
   failed_when: false
   changed_when: false
 
-- name: Upgrade all Homebrew packages
-  community.general.homebrew:
-    update_homebrew: true
-    upgrade_all: true
+- name: Upgrade all Homebrew packages manually
+  ansible.builtin.shell: |
+    brew update || true
+    brew upgrade
+  args:
+    warn: false
 
 - name: Install Homebrew packages via brew
   community.general.homebrew:
