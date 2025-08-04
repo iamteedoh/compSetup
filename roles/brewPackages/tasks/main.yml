@@ -23,10 +23,10 @@
     name: "{{ item }}"
     state: present
   loop: "{{ caskPackages }}"
-  when: caskPacakges is defined
+  when: caskPackages is defined
 
 - name: Install VS Code extensions
-  ansible.builtin.shell "code --install-extension {{ item }} --force"
+  ansible.builtin.shell: "code --install-extension {{ item }} --force"
   args:
     warn: false
   loop: "{{ vscodeExtensions }}"
