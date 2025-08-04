@@ -13,6 +13,7 @@ NC='\033[0m' # No Color
 
 echo -e "${YELLOW}[$TIMESTAMP] Starting macOS bootstrap script...${NC}" | tee "$LOGFILE"
 
+## Prime sudo (caches credentials for other parts)
 echo -e "${YELLOW}Validating sudo access...${NC}" | tee -a "$LOGFILE"
 sudo -v
 
@@ -72,6 +73,10 @@ if ! xcode-select -p &>/dev/null; then
 else
   echo -e "${GREEN}Xcode Command Line Tools already installed.${NC}" | tee -a "$LOGFILE"
 fi
+
+## Ensure correct Homebrew environment (for Apple Silicon)
+echo -e "${YELLOW}Setting up Homebrew environment...${NC}" | tee -a "$LOGFILE"
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
 ## Now it's safe to update Homebrew
 log_and_run "brew update"
