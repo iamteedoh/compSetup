@@ -1,0 +1,36 @@
+## roles/brewPackages/tasks/main.yml
+
+- name: Ensure 'code' CLI is available (skip if not installing VS Code extensions)
+  ansible.builtin.command: which code
+  register: code_cli
+  failed_when: false
+  changed_when: false
+
+- name: Upgrade all Homebrew packages
+  community.general.homebrew:
+    update_homebrew: true
+    upgrade_all: true
+
+- name: Install Homebrew packages via brew
+  community.general.homebrew:
+    name: "{{ item }}"
+    state: present
+  loop: "{{brewPackages }}"
+  when: brewPackages is defined
+
+- name: Install Homebrew Cask packages
+  community.general.homebrew_casks:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ caskPackages }}"
+  when: caskPacakges is defined
+
+- name: Install VS Code extensions
+  ansible.builtin.shell "code --install-extension {{ item }} --force"
+  args:
+    warn: false
+  loop: "{{ vscodeExtensions }}"
+  when:
+    - vscodeExtensions is defined
+    - install_vscode_extensions | bool
+    - code_cli.rc == 0

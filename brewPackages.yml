@@ -1,0 +1,37 @@
+# brewPackages.yml
+
+brewPackages:
+  - git
+  - wget
+  - htop
+  - ansible
+  - ffmpeg
+  - gnupg
+  - gotop
+  - graphviz
+  - handbrake
+  - locateme
+  - ncdu
+  - neovim
+  - sha3sum
+  - wakeonlan
+  - watch
+
+caskPackages:
+  - ghostty
+  - hightop
+  - qownnotes
+  - typora
+  - iterm2
+  - visual-studio-code
+
+vscodeExtensions:
+  - github.copilot
+  - github.copilot-chat
+  - golang.go
+  - ms-python.python
+  - ms-python.vscode-pylance
+  - redhat.ansible
+  - redhat.vscode-yaml
+  - rust-lang.rust-analyzer
+  - vscodevim.vim

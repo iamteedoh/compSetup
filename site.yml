@@ -1,0 +1,11 @@
+# site.yml
+
+- name: Conigure macOS with Homebrew and VS Code packages
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - brewPackages.yml
+  roles:
+    - brewPackages
+    # - anotherRole <- Add more roles here
