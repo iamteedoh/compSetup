@@ -35,16 +35,17 @@ log_and_run "test -d \$(brew --repo) || echo 'Homebrew repo missing — repairin
 
 # Reinstall Homebrew if the Git repo is corrupted
 if [[ ! -d "$(brew --repo)/.git" ]]; then
-  echo -e "${YELLOW}Homebrew appears broken. Attempting repair with elevated privileges...${NC}" | tee -a "$LOGFILE"
+  echo -e "${YELLOW}Homebrew appears broken. Attempting repair...${NC}" | tee -a "$LOGFILE"
 
   TEMP_REPAIR_SCRIPT=$(mktemp)
-  cat <<EOF > "$TEMP_REPAIR_SCRIPT"
+  cat <<'EOF' > "$TEMP_REPAIR_SCRIPT"
 #!/bin/bash
-NONINTERACTIVE=1 /bin/bash -c "\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+export NONINTERACTIVE=1
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 EOF
 
   chmod +x "$TEMP_REPAIR_SCRIPT"
-  sudo "$TEMP_REPAIR_SCRIPT" >> "$LOGFILE" 2>&1
+  log_and_run "$TEMP_REPAIR_SCRIPT"
   rm "$TEMP_REPAIR_SCRIPT"
 
   echo -e "${GREEN}Homebrew repair attempted.${NC}" | tee -a "$LOGFILE"
