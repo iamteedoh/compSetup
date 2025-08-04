@@ -3,7 +3,7 @@
 - name: Conigure macOS with Homebrew and VS Code packages
   hosts: localhost
   connection: local
-  gather_facts: false
+  gather_facts: true
   vars_files:
     - brewPackages.yml
   roles:

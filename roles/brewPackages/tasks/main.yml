@@ -1,8 +1,5 @@
 ## roles/brewPackages/tasks/main.yml
 
-- name: Gather facts
-  ansible.builtin.setup:
-
 - name: Ensure 'code' CLI is available (skip if not installing VS Code extensions)
   ansible.builtin.command: which code
   register: code_cli
