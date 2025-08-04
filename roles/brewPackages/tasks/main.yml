@@ -6,6 +6,18 @@
   failed_when: false
   changed_when: false
 
+- name: Ensure /usr/local/share/zsh is owned by the current user
+  become: true
+  ansible.builtin.command: >
+    chown -R {{ ansible_user_id }} /usr/local/share/zsh /usr/local/share/zsh/site-functions
+  when: ansible_facts['os_family'] == 'Darwin'
+
+- name: Ensure /usr/local/share/zsh is writable by the current user
+  become: true
+  ansible.builtin.command: >
+    chmod u+w /usr/local/share/zsh /usr/local/share/zsh/site-functions
+  when: ansible_facts['os_family'] == 'Darwin'
+
 - name: Upgrade all Homebrew packages manually
   ansible.builtin.shell: |
     brew update || true
