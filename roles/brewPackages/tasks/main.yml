@@ -25,7 +25,7 @@
     name: "{{ item }}"
     state: present
     install_options:
-      - "--cask"
+      - "cask"
   loop: "{{ caskPackages }}"
   when: caskPackages is defined
 
