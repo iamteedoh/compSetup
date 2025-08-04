@@ -33,10 +33,30 @@ fi
 echo "== Reached: brew repair section ==" | tee -a "$LOGFILE"
 log_and_run "test -d \$(brew --repo) || echo 'Homebrew repo missing — repairing...'"
 
+## Ensure Rosetta 2 (for Apple Silicon)
+if [[ $(uname -m) == "arm64" ]]; then
+  echo -e "${YELLOW}Apple Silicon detected. Installing Rosetta 2 if needed...${NC}" | tee -a "$LOGFILE"
+  if /usr/bin/pgrep oahd &>/dev/null; then
+    echo -e "${GREEN}Rosetta 2 already installed.${NC}" | tee -a "$LOGFILE"
+  else
+    log_and_run "/usr/sbin/softwareupdate --install-rosetta --agree-to-license"
+  fi
+fi
+
+## Ensure Xcode Command Line Tools
+echo -e "${YELLOW}Checking for Xcode Command Line Tools...${NC}" | tee -a "$LOGFILE"
+if ! xcode-select -p &>/dev/null; then
+  echo -e "${YELLOW}Installing Xcode Command Line Tools...${NC}" | tee -a "$LOGFILE"
+  # This will trigger a GUI prompt, so we try to install it in a non-blocking way
+  log_and_run "xcode-select --install || true"
+else
+  echo -e "${GREEN}Xcode Command Line Tools already installed.${NC}" | tee -a "$LOGFILE"
+fi
+
 # Reinstall Homebrew if the Git repo is corrupted
 if [[ ! -d "$(brew --repo)/.git" ]]; then
   echo -e "${YELLOW}Homebrew appears broken. Re-running official installer to repair it...${NC}" | tee -a "$LOGFILE"
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$LOGFILE" 2>&1
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$LOGFILE" 2>&1
   echo -e "${GREEN}Homebrew repaired.${NC}" | tee -a "$LOGFILE"
 fi
 
