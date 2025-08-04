@@ -1,8 +1,10 @@
 #!/bin/bash
 
 if [[ "$EUID" -ne 0 ]]; then
+    echo ""
     echo "Please run this script with sudo:"
     echo "    sudo $0"
+    echo ""
     exit 1
 fi
 
