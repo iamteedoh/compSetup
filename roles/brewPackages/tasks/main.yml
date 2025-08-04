@@ -12,6 +12,8 @@
     brew upgrade
   args:
     warn: false
+  register: brew_upgrade_output
+  changed_when: "'Already up-to-date.' not in brew_upgrade_output.stdout"
 
 - name: Install Homebrew packages via brew
   community.general.homebrew:
