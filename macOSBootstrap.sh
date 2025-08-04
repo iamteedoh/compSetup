@@ -29,8 +29,18 @@ else
   echo -e "${GREEN}Homebrew is already installed.${NC}" | tee -a "$LOGFILE"
 fi
 
-## Ensure Homebrew is up to date
-#echo -e "${YELLOW}Updating Homebrew...${NC}"
+## Validate and repair Homebrew if needed
+echo "== Reached: brew repair section ==" | tee -a "$LOGFILE"
+log_and_run "test -d \$(brew --repo) || echo 'Homebrew repo missing — repairing...'"
+
+# Reinstall Homebrew if the Git repo is corrupted
+if [[ ! -d "$(brew --repo)/.git" ]]; then
+  echo -e "${YELLOW}Homebrew appears broken. Re-running official installer to repair it...${NC}" | tee -a "$LOGFILE"
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$LOGFILE" 2>&1
+  echo -e "${GREEN}Homebrew repaired.${NC}" | tee -a "$LOGFILE"
+fi
+
+## Now it's safe to update Homebrew
 log_and_run "brew update"
 
 ## Check for Ansible installation
