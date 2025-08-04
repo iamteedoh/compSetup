@@ -13,6 +13,9 @@ NC='\033[0m' # No Color
 
 echo -e "${YELLOW}[$TIMESTAMP] Starting macOS bootstrap script...${NC}" | tee "$LOGFILE"
 
+echo -e "${YELLOW}Validating sudo access...${NC}" | tee -a "$LOGFILE"
+sudo -v
+
 ## Log and run commands
 log_and_run() {
   echo -e "${YELLOW}-> $*${NC}" | tee -a "$LOGFILE"
