@@ -10,9 +10,6 @@
   ansible.builtin.shell: |
     brew update || true
     brew upgrade
-  args:
-    executable: /bin/bash
-    warn: false
   register: brew_upgrade_output
   changed_when: "'Already up-to-date.' not in brew_upgrade_output.stdout"
 
@@ -20,7 +17,7 @@
   community.general.homebrew:
     name: "{{ item }}"
     state: present
-  loop: "{{brewPackages }}"
+  loop: "{{ brewPackages }}"
   when: brewPackages is defined
 
 - name: Install Homebrew Cask packages
@@ -33,8 +30,6 @@
 
 - name: Install VS Code extensions
   ansible.builtin.shell: "code --install-extension {{ item }} --force"
-  args:
-    warn: false
   loop: "{{ vscodeExtensions }}"
   when:
     - vscodeExtensions is defined
