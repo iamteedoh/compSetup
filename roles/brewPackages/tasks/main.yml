@@ -19,9 +19,10 @@
   when: brewPackages is defined
 
 - name: Install Homebrew Cask packages
-  community.general.homebrew_casks:
+  community.general.homebrew:
     name: "{{ item }}"
     state: present
+    cask: true
   loop: "{{ caskPackages }}"
   when: caskPackages is defined
 
