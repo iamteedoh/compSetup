@@ -16,10 +16,11 @@ echo -e "${YELLOW}[$TIMESTAMP] Starting macOS bootstrap script...${NC}" | tee "$
 ## Log and run commands
 log_and_run() {
   echo -e "${YELLOW}-> $*${NC}" | tee -a "$LOGFILE"
-  eval "$@" >> "$LOGFILE" 2>&1
+  eval "$*" >> "$LOGFILE" 2>&1
 }
 
 ## Check for Homebrew installation
+echo "== Reached: brew install section ==" | tee -a "$LOGFILE"
 if ! command -v brew &> /dev/null; then
   echo -e "${YELLOW}Homebrew not found. Installing Hombrew...${NC}" | tee -a "$LOGFILE"
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$LOGFILE" 2>&1
@@ -33,6 +34,7 @@ fi
 log_and_run "brew update"
 
 ## Check for Ansible installation
+echo "== Reached: Ansible installation section ==" | tee -a "$LOGFILE"
 if ! command -v ansible &> /dev/null; then
   echo -e "${YELLOW}Ansible not found. Installing Ansible via Homebrew...${NC}" | tee -a "$LOGFILE"
   log_and_run "brew install ansible"
@@ -42,10 +44,12 @@ else
 fi
 
 ## Ensure required collection is installed
+echo "== Reached: Ansible collection section ==" | tee -a "$LOGFILE"
 echo -e "${YELLOW}Ensuring required Ansible collections are installed...${NC}" | tee -a "$LOGFILE"
 log_and_run "ansible-galaxy collection install community.general"
 
 ## VS Code check (used as a fact for the role)
+echo "== Reached: VS Code check section ==" | tee -a "$LOGFILE"
 if [[ -d "/Applications/Visual Studio Code.app" ]] || command -v code &> /dev/null; then
   export INSTALL_VSCODE_EXTENSIONS=true
   echo -e "${GREEN}Vidual Studio Code is installed. VS Code extensions will be installed.${NC}" | tee -a "$LOGFILE"
@@ -55,6 +59,7 @@ else
 fi
 
 ## Run Ansbile Playbook for config/package management
+echo "== Reached: Ansbile role (final) section ==" | tee -a "$LOGFILE"
 if [[ -f "$PLAYBOOK" ]]; then
   echo -e "${YELLOW}Running Ansible playbook: ${PLAYBOOK}${NC}" | tee -a "$LOGFILE"
   log_and_run "ansible-playbook $PLAYBOOK -e \"install_vscode_extensions=$INSTALL_VSCODE_EXTENSIONS\""
