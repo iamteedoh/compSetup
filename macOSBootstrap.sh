@@ -15,7 +15,7 @@ echo -e "${YELLOW}[$TIMESTAMP] Starting macOS bootstrap script...${NC}" | tee "$
 
 ## Log and run commands
 log_and_run() {
-  echo -e "${YELLOW}-> $*${NC} | tee -a "$LOGFILE"
+  echo -e "${YELLOW}-> $*${NC}" | tee -a "$LOGFILE"
   eval "$@" >> "$LOGFILE" 2>&1
 }
 
