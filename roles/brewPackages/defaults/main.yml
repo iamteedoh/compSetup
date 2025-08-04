@@ -1,0 +1,5 @@
+# roles/brewPackages/defaults/main.yml
+
+brewPackages: []
+casksPackages: []
+vscodeExtensions: []
