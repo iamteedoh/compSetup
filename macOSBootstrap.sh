@@ -17,6 +17,13 @@ echo -e "${YELLOW}[$TIMESTAMP] Starting macOS bootstrap script...${NC}" | tee "$
 echo -e "${YELLOW}Validating sudo access...${NC}" | tee -a "$LOGFILE"
 sudo -v
 
+## Ensure /usr/local/share/zsh is writable by current user
+echo -e "${YELLOW}Ensuring /usr/local/share/zsh is writable...${NC}" | tee -a "$LOGFILE"
+if [[ -d /usr/local/share/zsh ]]; then
+  sudo chown -R "$USER" /usr/local/share/zsh /usr/local/share/zsh/site-functions
+  sudo chmod u+w /usr/local/share/zsh /usr/local/share/zsh/site-functions
+fi
+
 ## Log and run commands
 log_and_run() {
   echo -e "${YELLOW}-> $*${NC}" | tee -a "$LOGFILE"
