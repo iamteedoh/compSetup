@@ -11,6 +11,7 @@
     brew update || true
     brew upgrade
   args:
+    executable: /bin/bash
     warn: false
   register: brew_upgrade_output
   changed_when: "'Already up-to-date.' not in brew_upgrade_output.stdout"
