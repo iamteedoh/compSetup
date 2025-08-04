@@ -24,7 +24,8 @@
   community.general.homebrew:
     name: "{{ item }}"
     state: present
-    cask: true
+    install_options:
+      - "--cask"
   loop: "{{ caskPackages }}"
   when: caskPackages is defined
 
