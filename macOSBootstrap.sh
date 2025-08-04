@@ -1,13 +1,5 @@
 #!/bin/bash
 
-if [[ "$EUID" -ne 0 ]]; then
-    echo ""
-    echo "Please run this script with sudo:"
-    echo "    sudo $0"
-    echo ""
-    exit 1
-fi
-
 set -euo pipefail
 
 ## Setup Options
@@ -30,7 +22,7 @@ log_and_run() {
 ## Check for Homebrew installation
 echo "== Reached: brew install section ==" | tee -a "$LOGFILE"
 if ! command -v brew &> /dev/null; then
-  echo -e "${YELLOW}Homebrew not found. Installing Hombrew...${NC}" | tee -a "$LOGFILE"
+  echo -e "${YELLOW}Homebrew not found. Installing Homebrew...${NC}" | tee -a "$LOGFILE"
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$LOGFILE" 2>&1
   echo -e "${GREEN}Homebrew installed.${NC}" | tee -a "$LOGFILE"
 else
@@ -40,6 +32,23 @@ fi
 ## Validate and repair Homebrew if needed
 echo "== Reached: brew repair section ==" | tee -a "$LOGFILE"
 log_and_run "test -d \$(brew --repo) || echo 'Homebrew repo missing — repairing...'"
+
+# Reinstall Homebrew if the Git repo is corrupted
+if [[ ! -d "$(brew --repo)/.git" ]]; then
+  echo -e "${YELLOW}Homebrew appears broken. Attempting repair with elevated privileges...${NC}" | tee -a "$LOGFILE"
+
+  TEMP_REPAIR_SCRIPT=$(mktemp)
+  cat <<EOF > "$TEMP_REPAIR_SCRIPT"
+#!/bin/bash
+NONINTERACTIVE=1 /bin/bash -c "\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+EOF
+
+  chmod +x "$TEMP_REPAIR_SCRIPT"
+  sudo "$TEMP_REPAIR_SCRIPT" >> "$LOGFILE" 2>&1
+  rm "$TEMP_REPAIR_SCRIPT"
+
+  echo -e "${GREEN}Homebrew repair attempted.${NC}" | tee -a "$LOGFILE"
+fi
 
 ## Ensure Rosetta 2 (for Apple Silicon)
 if [[ $(uname -m) == "arm64" ]]; then
@@ -55,17 +64,9 @@ fi
 echo -e "${YELLOW}Checking for Xcode Command Line Tools...${NC}" | tee -a "$LOGFILE"
 if ! xcode-select -p &>/dev/null; then
   echo -e "${YELLOW}Installing Xcode Command Line Tools...${NC}" | tee -a "$LOGFILE"
-  # This will trigger a GUI prompt, so we try to install it in a non-blocking way
   log_and_run "xcode-select --install || true"
 else
   echo -e "${GREEN}Xcode Command Line Tools already installed.${NC}" | tee -a "$LOGFILE"
-fi
-
-# Reinstall Homebrew if the Git repo is corrupted
-if [[ ! -d "$(brew --repo)/.git" ]]; then
-  echo -e "${YELLOW}Homebrew appears broken. Re-running official installer to repair it...${NC}" | tee -a "$LOGFILE"
-  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >> "$LOGFILE" 2>&1
-  echo -e "${GREEN}Homebrew repaired.${NC}" | tee -a "$LOGFILE"
 fi
 
 ## Now it's safe to update Homebrew
@@ -90,18 +91,18 @@ log_and_run "ansible-galaxy collection install community.general"
 echo "== Reached: VS Code check section ==" | tee -a "$LOGFILE"
 if [[ -d "/Applications/Visual Studio Code.app" ]] || command -v code &> /dev/null; then
   export INSTALL_VSCODE_EXTENSIONS=true
-  echo -e "${GREEN}Vidual Studio Code is installed. VS Code extensions will be installed.${NC}" | tee -a "$LOGFILE"
+  echo -e "${GREEN}Visual Studio Code is installed. VS Code extensions will be installed.${NC}" | tee -a "$LOGFILE"
 else
   export INSTALL_VSCODE_EXTENSIONS=false
   echo -e "${YELLOW}Visual Studio Code is NOT installed. Skipping VS Code extensions.${NC}" | tee -a "$LOGFILE"
 fi
 
-## Run Ansbile Playbook for config/package management
-echo "== Reached: Ansbile role (final) section ==" | tee -a "$LOGFILE"
+## Run Ansible Playbook for config/package management
+echo "== Reached: Ansible role (final) section ==" | tee -a "$LOGFILE"
 if [[ -f "$PLAYBOOK" ]]; then
   echo -e "${YELLOW}Running Ansible playbook: ${PLAYBOOK}${NC}" | tee -a "$LOGFILE"
   log_and_run "ansible-playbook $PLAYBOOK -e \"install_vscode_extensions=$INSTALL_VSCODE_EXTENSIONS\""
-  echo -e "${GREEN}Playbook completed successfull.${NC}" | tee -a "$LOGFILE"
+  echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"
 else
   echo -e "${RED}Playbook $PLAYBOOK not found. Exiting.${NC}" | tee -a "$LOGFILE"
   exit 1
