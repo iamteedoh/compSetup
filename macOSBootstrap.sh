@@ -57,7 +57,7 @@ fi
 ## Run Ansbile Playbook for config/package management
 if [[ -f "$PLAYBOOK" ]]; then
   echo -e "${YELLOW}Running Ansible playbook: ${PLAYBOOK}${NC}" | tee -a "$LOGFILE"
-  log_and_run "ansible-playbook $PLAYBOOK -e install_vscode_extensions=$INSTALL_VSCODE_EXTENSIONS"
+  log_and_run "ansible-playbook $PLAYBOOK -e \"install_vscode_extensions=$INSTALL_VSCODE_EXTENSIONS\""
   echo -e "${GREEN}Playbook completed successfull.${NC}" | tee -a "$LOGFILE"
 else
   echo -e "${RED}Playbook $PLAYBOOK not found. Exiting.${NC}" | tee -a "$LOGFILE"
