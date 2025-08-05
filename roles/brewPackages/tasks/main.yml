@@ -1,11 +1,5 @@
 ## roles/brewPackages/tasks/main.yml
 
-- name: Ensure 'code' CLI is available
-  ansible.builtin.command: which code
-  register: code_cli
-  changed_when: false
-  failed_when: false
-
 - name: Manually update and upgrade Homebrew
   ansible.builtin.shell: |
     brew update || true
@@ -28,16 +22,23 @@
   loop: "{{ caskPackages }}"
   when: caskPackages is defined
 
+- name: Check if VS Code executable exists
+  ansible.builtin.stat:
+    path: "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+  register: vscode_executable
+
 - name: Get list of installed VS Code extensions
-  ansible.builtin.command: code --list-extensions
+  ansible.builtin.command: "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code --list-extensions"
   register: installed_extensions
   changed_when: false
   failed_when: false
-  when: install_vscode_extensions | default(false)
+  when:
+    - install_vscode_extensions | default(false)
+    - vscode_executable.stat.exists
 
 - name: Install missing VS Code extensions
-  ansible.builtin.command: code --install-extension {{ item }}
+  ansible.builtin.command: "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code --install-extension {{ item }}"
   loop: "{{ vscodeExtensions | difference(installed_extensions.stdout_lines | default([])) }}"
   when:
     - install_vscode_extensions | default(false)
-    - code_cli.rc == 0
+    - vscode_executable.stat.exists
