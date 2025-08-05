@@ -1,54 +1,40 @@
 ## roles/brewPackages/tasks/main.yml
 
-- name: Ensure 'code' CLI is available (skip if not installing VS Code extensions)
+- name: Ensure 'code' CLI is available
   ansible.builtin.command: which code
   register: code_cli
-  failed_when: false
   changed_when: false
+  failed_when: false
 
-- name: Upgrade all Homebrew packages manually
-  ansible.builtin.shell: |
-    brew update || true
-    brew upgrade
-  register: brew_upgrade_output
-  changed_when: "'Already up-to-date.' not in brew_upgrade_output.stdout"
+- name: Upgrade all Homebrew packages
+  community.general.homebrew:
+    update_homebrew: true
+    upgrade_all: true
 
-- name: Install Homebrew packages via brew
+- name: Install Homebrew formula packages
   community.general.homebrew:
     name: "{{ item }}"
     state: present
   loop: "{{ brewPackages }}"
   when: brewPackages is defined
 
-- name: Install Homebrew Cask packages (skip if app already exists)
-  ansible.builtin.shell: |
-    if [ ! -d "/Applications/{{ item | regex_replace('-', ' ') | title }}.app" ]; then
-      brew install --cask {{ item }}
-    else
-      echo "Skipping {{ item }} — already installed."
-    fi
-  args:
-    warn: false
+- name: Install Homebrew Cask packages
+  community.general.homebrew_cask:
+    name: "{{ item }}"
+    state: present
   loop: "{{ caskPackages }}"
-  register: brew_cask_results
-  ignore_errors: true
   when: caskPackages is defined
-
-- name: Debug Homebrew Cask results
-  debug:
-    var: brew_cask_results.results
-  when: brew_cask_results is defined
 
 - name: Get list of installed VS Code extensions
   ansible.builtin.command: code --list-extensions
   register: installed_extensions
   changed_when: false
   failed_when: false
+  when: install_vscode_extensions | default(false)
 
 - name: Install missing VS Code extensions
-  ansible.builtin.command: "code --install-extension {{ item }} --force"
+  ansible.builtin.command: code --install-extension {{ item }}
   loop: "{{ vscodeExtensions | difference(installed_extensions.stdout_lines | default([])) }}"
   when:
-    - vscodeExtensions is defined
-    - install_vscode_extensions | bool
+    - install_vscode_extensions | default(false)
     - code_cli.rc == 0
