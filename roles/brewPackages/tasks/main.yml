@@ -28,7 +28,10 @@
   register: vscode_executable
 
 - name: Get list of installed VS Code extensions
-  ansible.builtin.command: "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code --list-extensions"
+  ansible.builtin.command:
+    argv:
+      - "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+      - --list-extensions
   register: installed_extensions
   changed_when: false
   failed_when: false
@@ -37,7 +40,11 @@
     - vscode_executable.stat.exists
 
 - name: Install missing VS Code extensions
-  ansible.builtin.command: "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code --install-extension {{ item }}"
+  ansible.builtin.command:
+    argv:
+      - "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+      - --install-extension
+      - "{{ item }}"
   loop: "{{ vscodeExtensions | difference(installed_extensions.stdout_lines | default([])) }}"
   when:
     - install_vscode_extensions | default(false)
