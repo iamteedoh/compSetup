@@ -21,13 +21,17 @@
   when: brewPackages is defined
 
 - name: Install Homebrew Cask packages
-  community.general.homebrew:
-    name: "{{ item }}"
-    state: present
-    install_options:
-      - "cask"
+  ansible.builtin.shell: "brew install --cask {{ item }}"
+  args:
+    warn: false
   loop: "{{ caskPackages }}"
-  when: caskPackages is defined
+  register: brew_cask_results
+  changed_when: "'already installed' not in brew_cask_results.stdout"
+  ignore_errors: true
+
+- name: Debug Homebrew Cask results
+  debug:
+    var: brew_cask_results.results
 
 - name: Install VS Code extensions
   ansible.builtin.shell: "code --install-extension {{ item }} --force"
