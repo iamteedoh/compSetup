@@ -40,27 +40,20 @@ else
   echo -e "${GREEN}Homebrew is already installed.${NC}" | tee -a "$LOGFILE"
 fi
 
+## Ensure correct Homebrew environment (for Apple Silicon)
+if [[ "$(uname -m)" == "arm64" ]]; then
+  echo -e "${YELLOW}Setting up Homebrew environment for Apple Silicon...${NC}" | tee -a "$LOGFILE"
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
 ## Validate and repair Homebrew if needed
 echo "== Reached: brew repair section ==" | tee -a "$LOGFILE"
-log_and_run "test -d \$(brew --repo) || echo 'Homebrew repo missing — repairing...'"
-
-# Reinstall Homebrew if the Git repo is corrupted
-if [[ ! -d "$(brew --repo)/.git" ]]; then
-  echo -e "${YELLOW}Homebrew appears broken. Attempting repair...${NC}" | tee -a "$LOGFILE"
-
-  TEMP_REPAIR_SCRIPT=$(mktemp)
-  cat <<'EOF' > "$TEMP_REPAIR_SCRIPT"
-#!/bin/bash
-export NONINTERACTIVE=1
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-EOF
-
-  chmod +x "$TEMP_REPAIR_SCRIPT"
-  log_and_run "$TEMP_REPAIR_SCRIPT"
-  rm "$TEMP_REPAIR_SCRIPT"
-
-  echo -e "${GREEN}Homebrew repair attempted.${NC}" | tee -a "$LOGFILE"
+if ! brew doctor >/dev/null 2>&1; then
+    echo -e "${YELLOW}Homebrew appears broken. Attempting repair...${NC}" | tee -a "$LOGFILE"
+    log_and_run "brew update --force"
+    log_and_run "brew upgrade"
 fi
+
 
 ## Ensure Rosetta 2 (for Apple Silicon)
 if [[ $(uname -m) == "arm64" ]]; then
@@ -81,12 +74,9 @@ else
   echo -e "${GREEN}Xcode Command Line Tools already installed.${NC}" | tee -a "$LOGFILE"
 fi
 
-## Ensure correct Homebrew environment (for Apple Silicon)
-echo -e "${YELLOW}Setting up Homebrew environment...${NC}" | tee -a "$LOGFILE"
-eval "$(/opt/homebrew/bin/brew shellenv)"
-
 ## Now it's safe to update Homebrew
 log_and_run "brew update"
+log_and_run "brew doctor"
 
 ## Check for Ansible installation
 echo "== Reached: Ansible installation section ==" | tee -a "$LOGFILE"
