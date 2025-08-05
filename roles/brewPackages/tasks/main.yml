@@ -39,13 +39,31 @@
     - install_vscode_extensions | default(false)
     - vscode_executable.stat.exists
 
+- name: Determine which VS Code extensions are missing
+  ansible.builtin.set_fact:
+    missing_extensions: "{{ vscodeExtensions | difference(installed_extensions.stdout_lines | default([])) }}"
+  when:
+    - install_vscode_extensions | default(false)
+    - vscode_executable.stat.exists
+
+- name: Report that all VS Code extensions are already installed
+  ansible.builtin.debug:
+    msg: "All specified VS Code extensions are already installed. Skipping installation."
+  when:
+    - install_vscode_extensions | default(false)
+    - vscode_executable.stat.exists
+    - missing_extensions is defined
+    - missing_extensions | length == 0
+
 - name: Install missing VS Code extensions
   ansible.builtin.command:
     argv:
       - "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
       - --install-extension
       - "{{ item }}"
-  loop: "{{ vscodeExtensions | difference(installed_extensions.stdout_lines | default([])) }}"
+  loop: "{{ missing_extensions | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
   when:
     - install_vscode_extensions | default(false)
     - vscode_executable.stat.exists
