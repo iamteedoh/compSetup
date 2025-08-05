@@ -54,11 +54,14 @@ fi
 
 ## Validate and repair Homebrew if needed
 echo "== Reached: brew repair section ==" | tee -a "$LOGFILE"
-# We add `|| true` so that a non-zero exit from brew doctor doesn't stop the script
-if ! brew doctor >/dev/null 2>&1; then
-    echo -e "${YELLOW}Homebrew appears broken. Attempting repair...${NC}" | tee -a "$LOGFILE"
-    log_and_run "brew update --force" || true
-    log_and_run "brew upgrade" || true
+# Check if a basic brew command fails. This is a better sign of a broken installation
+# than `brew doctor`, which can exit with a non-zero status for simple warnings.
+if ! brew config >/dev/null 2>&1; then
+  echo -e "${YELLOW}Homebrew installation appears to be broken. Attempting repair...${NC}" | tee -a "$LOGFILE"
+  log_and_run "brew update --force"
+  log_and_run "brew upgrade"
+else
+  echo -e "${GREEN}Homebrew installation is functional. Skipping repair.${NC}" | tee -a "$LOGFILE"
 fi
 
 
@@ -81,9 +84,10 @@ else
   echo -e "${GREEN}Xcode Command Line Tools already installed.${NC}" | tee -a "$LOGFILE"
 fi
 
-## Now it's safe to update Homebrew
+## Now it's safe to update Homebrew and check for issues
 log_and_run "brew update"
-# Add `|| true` to prevent script exit on warnings
+# We still run `brew doctor` to log any potential issues, but `|| true` prevents it
+# from stopping the script on warnings.
 log_and_run "brew doctor || true"
 
 ## Check for Ansible installation
