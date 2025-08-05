@@ -23,11 +23,13 @@
 - name: Install Homebrew Cask packages
   ansible.builtin.shell: "brew install --cask {{ item }}"
   args:
-    warn: false
-  loop: "{{ caskPackages }}"
+    executable: /bin/bash
   register: brew_cask_results
-  changed_when: "'already installed' not in brew_cask_results.stdout"
-  ignore_errors: true
+  loop: "{{ caskPackages }}"
+  failed_when: false  # Don't fail the play on non-zero exit
+  changed_when: >
+    "'already installed' not in brew_cask_results.results[ansible_loop.index0].stdout"
+  when: caskPackages is defined
 
 - name: Debug Homebrew Cask results
   debug:
