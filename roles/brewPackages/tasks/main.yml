@@ -24,6 +24,7 @@
   community.general.homebrew_cask:
     name: "{{ item }}"
     state: present
+    accept_external_apps: yes
   loop: "{{ caskPackages }}"
   when: caskPackages is defined
 
