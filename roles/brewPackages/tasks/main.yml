@@ -20,25 +20,31 @@
   loop: "{{ brewPackages }}"
   when: brewPackages is defined
 
-- name: Install Homebrew Cask packages
-  ansible.builtin.shell: "brew install --cask {{ item }}"
+- name: Install Homebrew Cask packages (skip if app already exists)
+  ansible.builtin.command: brew install --cask {{ item }}
   args:
+    creates: "/Applications/{{ item | regex_replace('-', ' ') | title }}.app"
     executable: /bin/bash
+  loop: "{{ brew_cask_packages }}"
   register: brew_cask_results
-  loop: "{{ caskPackages }}"
-  failed_when: false  # Don't fail the play on non-zero exit
-  changed_when: >
-    "'already installed' not in brew_cask_results.results[ansible_loop.index0].stdout"
-  when: caskPackages is defined
+  ignore_errors: true
 
 - name: Debug Homebrew Cask results
   debug:
     var: brew_cask_results.results
 
-- name: Install VS Code extensions
-  ansible.builtin.shell: "code --install-extension {{ item }} --force"
-  loop: "{{ vscodeExtensions }}"
+- name: Get list of installed VS Code extensions
+  ansible.builtin.command: code --list-extensions
+  register: vscode_installed_extensions
+  changed_when: false
+  failed_when: false
+  when: install_vscode_extensions | default(false)
+
+- name: Install missing VS Code extensions
+  ansible.builtin.command: code --install-extension {{ item }}
+  loop: "{{ vscode_extensions }}"
+  loop_control:
+    label: "{{ item }}"
   when:
-    - vscodeExtensions is defined
-    - install_vscode_extensions | bool
-    - code_cli.rc == 0
+    - install_vscode_extensions | default(false)
+    - item not in vscode_installed_extensions.stdout_lines
