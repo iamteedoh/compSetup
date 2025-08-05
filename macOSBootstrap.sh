@@ -27,7 +27,13 @@ fi
 ## Log and run commands
 log_and_run() {
   echo -e "${YELLOW}-> $*${NC}" | tee -a "$LOGFILE"
+  # Disabling 'e' temporarily for commands that might fail but we want to continue
+  set +e
   bash -c "$*" >> "$LOGFILE" 2>&1
+  local exit_code=$?
+  set -e
+  # Return the original exit code
+  return $exit_code
 }
 
 ## Check for Homebrew installation
@@ -48,10 +54,11 @@ fi
 
 ## Validate and repair Homebrew if needed
 echo "== Reached: brew repair section ==" | tee -a "$LOGFILE"
+# We add `|| true` so that a non-zero exit from brew doctor doesn't stop the script
 if ! brew doctor >/dev/null 2>&1; then
     echo -e "${YELLOW}Homebrew appears broken. Attempting repair...${NC}" | tee -a "$LOGFILE"
-    log_and_run "brew update --force"
-    log_and_run "brew upgrade"
+    log_and_run "brew update --force" || true
+    log_and_run "brew upgrade" || true
 fi
 
 
@@ -76,7 +83,8 @@ fi
 
 ## Now it's safe to update Homebrew
 log_and_run "brew update"
-log_and_run "brew doctor"
+# Add `|| true` to prevent script exit on warnings
+log_and_run "brew doctor || true"
 
 ## Check for Ansible installation
 echo "== Reached: Ansible installation section ==" | tee -a "$LOGFILE"
