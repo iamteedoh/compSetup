@@ -9,4 +9,5 @@
     - brewPackages.yml
   roles:
     - brewPackages
+    - installOhMyZSH
     # - anotherRole <- Add more roles here
