@@ -18,11 +18,12 @@ brewPackages:
   - watch
 
 caskPackages:
+  - google-chrome
   - ghostty
   - hightop
+  - iterm2
   - qownnotes
   - typora
-  - iterm2
   - visual-studio-code
 
 vscodeExtensions:
