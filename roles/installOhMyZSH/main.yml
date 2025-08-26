@@ -1,0 +1,13 @@
+---
+# tasks file for installOhMyZSH
+
+- name: Check if oh-my-zsh is already installed
+  stat:
+    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+  register: ohmyzsh_dir
+
+- name: Install oh-my-zsh if not present
+  shell: curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | RUNZSH=no sh
+  args:
+    creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
+  when: not ohmyzsh_dir.stat.exists
