@@ -1,19 +1,27 @@
-## roles/brewPackages/tasks/main.yml
-
 ---
-# Smart Homebrew installer: ARM first, Intel fallback per item
+# roles/brewPackages/tasks/main.yml
+# Smart Homebrew installer for macOS on Apple Silicon
+# - ARM first for taps/casks/formulae
+# - Intel (Rosetta + /usr/local/bin/brew) fallback only for failed items
+# - Robust VS Code extensions handling
+# - Safe guards for all debug/audit tasks
 
-# 0) Load package lists from repo root
+#########################################################
+# 0) Load desired package lists from repo root
+#########################################################
 - name: Load brew package lists
   include_vars:
     file: "{{ playbook_dir }}/brewPackages.yml"
 
-# Expected keys in brewPackages.yml (any optional):
+# Expected keys in brewPackages.yml (all optional):
 # brew_taps:     [homebrew/cask, ...]
 # brew_casks:    [iterm2, docker, ...]
 # brew_formulae: [git, minikube, kubectl, ...]
+# vscode_extensions: [ms-python.python, redhat.vscode-yaml, ...]
 
-# 1) Common paths & helpers
+#########################################################
+# 1) Common paths, helpers, and sane PATH for interactive shells
+#########################################################
 - name: Define Homebrew paths and helpers
   set_fact:
     arm_brew_bin: /opt/homebrew/bin/brew
@@ -28,7 +36,6 @@
     path: "{{ intel_brew_bin }}"
   register: intel_brew
 
-# Keep interactive shells sane
 - name: Ensure ARM Homebrew precedes Intel Homebrew in PATH for zsh
   when: ansible_system == "Darwin"
   lineinfile:
@@ -37,46 +44,49 @@
     line: 'export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"'
     create: yes
 
-# ---------- TAPS ----------
+#########################################################
+# 2) TAPS (ARM first, Intel fallback)
+#########################################################
 - name: Add taps via ARM brew
-  when: brew_taps is defined and brew_taps|length > 0
+  when: (brew_taps | default([])) | length > 0
   command: "{{ arch_arm }} {{ arm_brew_bin }} tap {{ item }}"
   environment: "{{ brew_env }}"
-  loop: "{{ brew_taps }}"
+  loop: "{{ brew_taps | default([]) }}"
   register: tap_arm
   changed_when: "'Tapped' in (tap_arm.stdout | default(''))"
   failed_when: false
 
 - name: Fallback taps to Intel brew (only those that failed on ARM)
   when:
-    - brew_taps is defined
-    - brew_taps|length > 0
+    - (brew_taps | default([])) | length > 0
   block:
     - name: Determine taps needing Intel
       set_fact:
         taps_needing_intel: "{{ (tap_arm.results | default([])) | selectattr('rc','ne',0) | map(attribute='item') | list }}"
     - name: Ensure Rosetta is present (on-demand)
-      when: taps_needing_intel | length > 0
+      when: (taps_needing_intel | default([])) | length > 0
       command: /usr/sbin/softwareupdate --install-rosetta --agree-to-license
       register: rosetta_taps
       changed_when: "'Install' in (rosetta_taps.stdout | default(''))"
       failed_when: false
     - name: Tap via Intel brew (fallback)
       when:
-        - taps_needing_intel | length > 0
+        - (taps_needing_intel | default([])) | length > 0
         - intel_brew.stat.exists | default(false)
       command: "{{ arch_x86 }} {{ intel_brew_bin }} tap {{ item }}"
-      loop: "{{ taps_needing_intel }}"
+      loop: "{{ taps_needing_intel | default([]) }}"
       register: tap_intel
       changed_when: "'Tapped' in (tap_intel.stdout | default(''))"
       failed_when: false
 
-# ---------- CASKS ----------
+#########################################################
+# 3) CASKS (ARM first, Intel fallback)
+#########################################################
 - name: Install casks via ARM brew
-  when: brew_casks is defined and brew_casks|length > 0
+  when: (brew_casks | default([])) | length > 0
   command: "{{ arch_arm }} {{ arm_brew_bin }} install --cask {{ item }}"
   environment: "{{ brew_env }}"
-  loop: "{{ brew_casks }}"
+  loop: "{{ brew_casks | default([]) }}"
   register: cask_arm
   changed_when: >
     'Purging' in (cask_arm.stdout | default('')) or
@@ -85,25 +95,23 @@
   failed_when: false
 
 - name: Fallback casks to Intel brew (only those that failed on ARM)
-  when:
-    - brew_casks is defined
-    - brew_casks|length > 0
+  when: (brew_casks | default([])) | length > 0
   block:
     - name: Determine casks needing Intel
       set_fact:
         casks_needing_intel: "{{ (cask_arm.results | default([])) | selectattr('rc','ne',0) | map(attribute='item') | list }}"
     - name: Ensure Rosetta is present (on-demand)
-      when: casks_needing_intel | length > 0
+      when: (casks_needing_intel | default([])) | length > 0
       command: /usr/sbin/softwareupdate --install-rosetta --agree-to-license
       register: rosetta_cask
       changed_when: "'Install' in (rosetta_cask.stdout | default(''))"
       failed_when: false
     - name: Install casks via Intel brew (fallback)
       when:
-        - casks_needing_intel | length > 0
+        - (casks_needing_intel | default([])) | length > 0
         - intel_brew.stat.exists | default(false)
       command: "{{ arch_x86 }} {{ intel_brew_bin }} install --cask {{ item }}"
-      loop: "{{ casks_needing_intel }}"
+      loop: "{{ casks_needing_intel | default([]) }}"
       register: cask_intel
       changed_when: >
         'Purging' in (cask_intel.stdout | default('')) or
@@ -111,7 +119,9 @@
         'Linking' in (cask_intel.stdout | default(''))
       failed_when: false
 
-# ---------- FORMULAE ----------
+#########################################################
+# 4) FORMULAE (ARM first, Intel fallback)
+#########################################################
 - name: Get installed ARM formula list
   command: "{{ arch_arm }} {{ arm_brew_bin }} list --formula --versions"
   environment: "{{ brew_env }}"
@@ -119,21 +129,21 @@
   failed_when: false
   register: arm_list
 
-- name: Compute pending formulae (not yet in ARM)
-  when: brew_formulae is defined and brew_formulae|length > 0
+- name: Compute pending formulae (not yet present in ARM list)
+  when: (brew_formulae | default([])) | length > 0
   set_fact:
     formulae_pending: >-
       {{
-        brew_formulae | difference(
+        (brew_formulae | default([])) | difference(
           (arm_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list
         )
       }}
 
 - name: Install formulae via ARM brew
-  when: formulae_pending is defined and formulae_pending|length > 0
+  when: (formulae_pending | default([])) | length > 0
   command: "{{ arch_arm }} {{ arm_brew_bin }} install {{ item }}"
   environment: "{{ brew_env }}"
-  loop: "{{ formulae_pending }}"
+  loop: "{{ formulae_pending | default([]) }}"
   register: arm_install
   changed_when: >
     'Pouring' in (arm_install.stdout | default('')) or
@@ -147,7 +157,7 @@
     formulae_needing_intel: "{{ (arm_install.results | default([])) | selectattr('rc','ne',0) | map(attribute='item') | list }}"
 
 - name: Ensure Rosetta is present (on-demand)
-  when: formulae_needing_intel | default([]) | length > 0
+  when: (formulae_needing_intel | default([])) | length > 0
   command: /usr/sbin/softwareupdate --install-rosetta --agree-to-license
   register: rosetta_form
   changed_when: "'Install' in (rosetta_form.stdout | default(''))"
@@ -155,10 +165,10 @@
 
 - name: Install formulae via Intel brew (fallback)
   when:
-    - formulae_needing_intel | default([]) | length > 0
+    - (formulae_needing_intel | default([])) | length > 0
     - intel_brew.stat.exists | default(false)
   command: "{{ arch_x86 }} {{ intel_brew_bin }} install {{ item }}"
-  loop: "{{ formulae_needing_intel }}"
+  loop: "{{ formulae_needing_intel | default([]) }}"
   register: intel_install
   changed_when: >
     'Pouring' in (intel_install.stdout | default('')) or
@@ -166,13 +176,62 @@
     'Linking' in (intel_install.stdout | default(''))
   failed_when: false
 
-# ---------- VSCODE EXTENSIONS ----------
-# 1) Normalize the desired list from brewPackages.yml (may not exist)
+#########################################################
+# 5) Optional: auto-repair common CLIs installed as x86_64
+#    (Reinstall them as arm64 when an ARM bottle exists)
+#########################################################
+- name: Build audit set for common CLIs
+  set_fact:
+    audit_bins: >-
+      {{
+        (brew_formulae | default([])) |
+        intersect(['minikube','kubectl','helm','docker','colima','kind']) |
+        unique
+      }}
+
+- name: Detect arch of selected binaries
+  when: (audit_bins | default([])) | length > 0
+  shell: |
+    set -euo pipefail
+    for b in {{ audit_bins | join(' ') }}; do
+      cmd="$(command -v "$b" || true)"
+      if [ -n "$cmd" ]; then
+        a="$(file "$cmd" | grep -oE 'arm64|x86_64' | head -1 || true)"
+        echo "$b:$a:$cmd"
+      fi
+    done
+  environment: "{{ brew_env }}"
+  register: bin_arch
+  changed_when: false
+  failed_when: false
+
+- name: Compute tools that are x86_64 and need ARM reinstall
+  set_fact:
+    need_arm_reinstall: >-
+      {{
+        (bin_arch.stdout_lines | default([]))
+        | map('split', ':')
+        | selectattr('1', 'equalto', 'x86_64')
+        | map('first')
+        | list
+      }}
+
+- name: Reinstall mismatched tools as arm64
+  when: (need_arm_reinstall | default([])) | length > 0
+  command: "{{ arch_arm }} {{ arm_brew_bin }} reinstall {{ item }}"
+  loop: "{{ need_arm_reinstall | default([]) }}"
+  register: arm_reinstalls
+  changed_when: "'Reinstalling' in (arm_reinstalls.stdout | default('')) or arm_reinstalls.rc == 0"
+  failed_when: false
+
+#########################################################
+# 6) VS CODE EXTENSIONS (robust; no undefined vars)
+#########################################################
 - name: Normalize VS Code extensions list
   set_fact:
     vscode_extensions: "{{ (vscode_extensions | default([])) | list }}"
+    install_vscode_extensions: "{{ install_vscode_extensions | default(false) | bool }}"
 
-# 2) Find a usable `code` CLI (stable or insiders)
 - name: Detect VS Code CLI (stable or insiders)
   shell: |
     set -euo pipefail
@@ -190,92 +249,78 @@
   changed_when: false
   failed_when: false
 
-# 3) Early-exit note if Code isn't present
-- name: Note when VS Code is not installed
-  when: code_bin.rc != 0
+- name: Note when VS Code is not installed or extensions disabled
+  when: code_bin.rc != 0 or not install_vscode_extensions
   debug:
-    msg: "VS Code not found; skipping extension install."
+    msg: >-
+      VS Code not found or extension install disabled (install_vscode_extensions={{ install_vscode_extensions }}).
+      Skipping VS Code extensions.
+  changed_when: false
 
-# 4) Read currently installed extensions (only if Code + we have a desired list)
 - name: Read installed VS Code extensions
   when:
     - code_bin.rc == 0
-    - vscode_extensions | length > 0
+    - (vscode_extensions | default([])) | length > 0
+    - install_vscode_extensions
   command: "{{ code_bin.stdout }} --list-extensions"
   register: code_ext_list
   changed_when: false
+  failed_when: false
 
-# 5) Compute missing list (only if we ran the read)
 - name: Compute missing VS Code extensions
   when:
     - code_bin.rc == 0
-    - vscode_extensions | length > 0
+    - (vscode_extensions | default([])) | length > 0
+    - install_vscode_extensions
   set_fact:
     vscode_ext_missing: >-
-      {{ vscode_extensions | difference(code_ext_list.stdout_lines | default([])) }}
+      {{ (vscode_extensions | default([])) | difference(code_ext_list.stdout_lines | default([])) }}
 
-# 6) Ensure the var always exists so downstream tasks never blow up
 - name: Ensure vscode_ext_missing is defined
   set_fact:
     vscode_ext_missing: "{{ vscode_ext_missing | default([]) }}"
 
-# 7) Install only the missing ones
 - name: Install missing VS Code extensions
   when:
     - code_bin.rc == 0
-    - vscode_ext_missing | length > 0
+    - (vscode_ext_missing | default([])) | length > 0
+    - install_vscode_extensions
   command: "{{ code_bin.stdout }} --install-extension {{ item }} --force"
-  loop: "{{ vscode_ext_missing }}"
+  loop: "{{ vscode_ext_missing | default([]) }}"
   register: code_ext_install
   changed_when: "'Installing' in (code_ext_install.stdout | default('')) or code_ext_install.rc == 0"
   failed_when: false
 
-# 8) Summarize
+#########################################################
+# 7) Reporting / Debug (safe guards everywhere)
+#########################################################
+- name: Debug failures (ARM formula installs)
+  when:
+    - arm_install is defined
+    - (arm_install.results | default([])) | selectattr('rc','ne',0) | list | length > 0
+  debug:
+    var: arm_install.results | default([]) | selectattr('rc','ne',0) | list
+
+- name: Debug failures (Intel formula fallbacks)
+  when:
+    - intel_install is defined
+    - (intel_install.results | default([])) | selectattr('rc','ne',0) | list | length > 0
+  debug:
+    var: intel_install.results | default([]) | selectattr('rc','ne',0) | list
+
+- name: Print audit results (if any)
+  when:
+    - bin_arch is defined
+    - (bin_arch.stdout | default('')) != ''
+  debug:
+    msg: "{{ bin_arch.stdout_lines | default([]) }}"
+
 - name: VS Code extension install summary
-  when: code_bin.rc == 0
+  when:
+    - code_bin is defined
+    - code_bin.rc == 0
+    - install_vscode_extensions
   debug:
     msg: >-
-      Requested: {{ vscode_extensions }}
-      Missing before: {{ vscode_ext_missing }}
-
-# ---------- REPORTING ----------
-- name: Summarize failures after both attempts
-  vars:
-    failed_arm: "{{ (arm_install.results | default([])) | selectattr('rc','ne',0) | map(attribute='item') | list }}"
-    failed_intel: "{{ (intel_install.results | default([])) | selectattr('rc','ne',0) | map(attribute='item') | list }}"
-  debug:
-    msg: >
-      Items that could not be installed even after Intel fallback:
-      {{ failed_arm | difference(failed_intel | default([])) }}
-  when: arm_install is defined
-  changed_when: false
-
-# Quick arch audit (nice to see at the end)
-- name: Build list of binaries to audit
-  set_fact:
-    audit_bins: >-
-      {{
-        (brew_formulae | default([])) |
-        intersect(['minikube','kubectl','helm','docker','colima','kind']) |
-        unique
-      }}
-
-- name: Show file arch for selected binaries
-  when: audit_bins | length > 0
-  shell: |
-    set -euo pipefail
-    for b in {{ audit_bins | join(' ') }}; do
-      cmd="$(command -v "$b" || true)"
-      if [ -n "$cmd" ]; then
-        printf "%-10s -> %s\n" "$b" "$(file "$cmd")"
-      else
-        printf "%-10s -> not installed or not in PATH\n" "$b"
-      fi
-    done
-  environment: "{{ brew_env }}"
-  register: audit_out
-  changed_when: false
-
-- debug:
-    msg: "{{ audit_out.stdout_lines }}"
-  when: audit_out is defined
+      Requested: {{ vscode_extensions | default([]) }}
+      Missing before: {{ vscode_ext_missing | default([]) }}
