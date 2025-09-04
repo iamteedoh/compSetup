@@ -1,6 +1,7 @@
 # brewPackages.yml
 
 brewPackages:
+  - docker
   - git
   - wget
   - htop
@@ -11,6 +12,7 @@ brewPackages:
   - graphviz
   - handbrake
   - locateme
+  - minikube
   - ncdu
   - neovim
   - sha3sum
