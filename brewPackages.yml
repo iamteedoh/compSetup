@@ -1,14 +1,14 @@
 # brewPackages.yml
 
 brew_formulae:
-  - git
-  - wget
-  - htop
   - ansible
   - ffmpeg
+  - git
   - gnupg
   - gotop
   - graphviz
+  - helm
+  - htop
   - locateme
   - minikube
   - ncdu
@@ -16,6 +16,7 @@ brew_formulae:
   - sha3sum
   - wakeonlan
   - watch
+  - wget
 
 brew_casks:
   - docker
