@@ -1,6 +1,6 @@
 # brewPackages.yml
 
-brewPackages:
+brew_formulae:
   - docker
   - git
   - wget
@@ -19,7 +19,7 @@ brewPackages:
   - wakeonlan
   - watch
 
-caskPackages:
+brew_casks:
   - google-chrome
   - ghostty
   - hightop
@@ -28,7 +28,7 @@ caskPackages:
   - typora
   - visual-studio-code
 
-vscodeExtensions:
+vscode_extensions:
   - github.copilot
   - github.copilot-chat
   - golang.go
