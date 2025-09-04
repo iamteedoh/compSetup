@@ -1,7 +1,6 @@
 # brewPackages.yml
 
 brew_formulae:
-  - docker
   - git
   - wget
   - htop
@@ -19,7 +18,7 @@ brew_formulae:
   - watch
 
 brew_casks:
-  - docker-desktop
+  - docker
   - google-chrome
   - ghostty
   - handbrake
