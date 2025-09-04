@@ -167,10 +167,12 @@
   failed_when: false
 
 # ---------- VSCODE EXTENSIONS ----------
-- name: Load VS Code extensions list
+# 1) Normalize the desired list from brewPackages.yml (may not exist)
+- name: Normalize VS Code extensions list
   set_fact:
-    vscode_extensions: "{{ vscode_extensions | default([]) }}"
+    vscode_extensions: "{{ (vscode_extensions | default([])) | list }}"
 
+# 2) Find a usable `code` CLI (stable or insiders)
 - name: Detect VS Code CLI (stable or insiders)
   shell: |
     set -euo pipefail
@@ -188,12 +190,14 @@
   changed_when: false
   failed_when: false
 
-- name: Skip gracefully if VS Code is not installed
+# 3) Early-exit note if Code isn't present
+- name: Note when VS Code is not installed
   when: code_bin.rc != 0
   debug:
-    msg: "VS Code not found; skipping extension install. (Install the app or add it to PATH to enable this step.)"
+    msg: "VS Code not found; skipping extension install."
 
-- name: Get currently installed VS Code extensions
+# 4) Read currently installed extensions (only if Code + we have a desired list)
+- name: Read installed VS Code extensions
   when:
     - code_bin.rc == 0
     - vscode_extensions | length > 0
@@ -201,15 +205,21 @@
   register: code_ext_list
   changed_when: false
 
+# 5) Compute missing list (only if we ran the read)
 - name: Compute missing VS Code extensions
   when:
     - code_bin.rc == 0
     - vscode_extensions | length > 0
   set_fact:
     vscode_ext_missing: >-
-      {{ vscode_extensions |
-         difference(code_ext_list.stdout_lines | default([])) }}
+      {{ vscode_extensions | difference(code_ext_list.stdout_lines | default([])) }}
 
+# 6) Ensure the var always exists so downstream tasks never blow up
+- name: Ensure vscode_ext_missing is defined
+  set_fact:
+    vscode_ext_missing: "{{ vscode_ext_missing | default([]) }}"
+
+# 7) Install only the missing ones
 - name: Install missing VS Code extensions
   when:
     - code_bin.rc == 0
@@ -220,13 +230,13 @@
   changed_when: "'Installing' in (code_ext_install.stdout | default('')) or code_ext_install.rc == 0"
   failed_when: false
 
-- name: Report VS Code extension install summary
+# 8) Summarize
+- name: VS Code extension install summary
   when: code_bin.rc == 0
   debug:
     msg: >-
-      Installed/ensured VS Code extensions.
-      Missing before install: {{ vscode_ext_missing | default([]) }}
-
+      Requested: {{ vscode_extensions }}
+      Missing before: {{ vscode_ext_missing }}
 
 # ---------- REPORTING ----------
 - name: Summarize failures after both attempts
