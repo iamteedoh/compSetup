@@ -63,8 +63,8 @@
     backup: no
 
 - name: Optionally install a default .p10k.zsh for Option 1
-  ansible.builtin.copy:
-    src: "{{ p10k_default_src }}"
+  ansible.builtin.template:
+    src: "p10k_default_src.j2"
     dest: "/usr/local/share/p10k_default.zsh"
     mode: "0644"
   when: p10k_default_src is defined
