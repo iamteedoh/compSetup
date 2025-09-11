@@ -1,0 +1,82 @@
+---
+# Role: powerlevel10k
+# Platform: macOS (works on Linux too)
+# What this does:
+#   - Ensures Oh My Zsh is installed
+#   - Installs Powerlevel10k into Oh My Zsh custom themes
+#   - Set ZSH_THEME to powerlevel10k/powerlevel10k in ~/.zshrc
+#   - Ensures ~/.p10k.zsh is sources from ~/.zshrc (if present)
+#   - Installs an interactive helper script (p10k_setup.py)
+#
+# Variables you can override at playbook/group/host level:
+#   p10k_default_src: path to your default .p10k.zsh to offer for Option 1 (e.g., "./p10k.zsh")
+#   p10k_script_dest: where to install the helper script (default: /usr/local/bin/p10k_setup.py)
+#   p10k_python_script_src: path to the local p10k_setup.py on your controller (default: "./p10k_setup.py")
+#   set_zsh_default:  whether to chsh -s /bin/zsh (default: false)
+
+- name: Gather facts for $HOME, etc.
+  ansible.builtin.setup:
+    gather_subset:
+      - env
+
+- name: Ensure git is present (Homebrew or system)
+  ansible.builtin.command: /usr/bin/git --version
+  register: git_check
+  changed_when: false
+  failed_when: git_check.rc not in [0]
+
+- name: Ensure Oh My Zsh is installed
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+  register: ohmyzsh_dir
+
+- name: Install Oh My Zsh (non-interactive)
+  ansible.builtin.shell: |
+    RUNZSH=no CHSH=no KEEP_ZSHRC=yes \
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  args:
+    executable: /bin/zsh
+    chdir: "{{ ansible_env.HOME }}"
+  when: not ohmyzsh_dir.stat.exists
+
+- name: Clone Powerlevel10k (if not present)
+  ansible.builtin.git:
+    repo: "https://github.com/romkatv/powerlevel10k.git"
+    dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
+    version: master
+    update: no
+
+- name: Ensure ZSH_THEME is set to powerlevel10k/powerlevel10k
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    regexp: '^ZSH_THEME='
+    line: 'ZSH_THEME="powerlevel10k/powerlevel10k"'
+    create: yes
+    backup: yes
+
+- name: Ensure ~/.p10k.zsh, if present, is sourced by ~/.zshrc
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.zshrc"
+    insertafter: EOF
+    line: '[ -f ~/.p10k.zsh ] && source ~/.p10k.zsh'
+    state: present
+    backup: no
+
+- name: Optionally install a default .p10k.zsh for Option 1
+  ansible.builtin.copy:
+    src: "{{ p10k_default_src }}"
+    dest: "/usr/local/share/p10k_default.zsh"
+    mode: "0644"
+  when: p10k_default_src is defined
+
+- name: Install the interactive p10k setup helper
+  ansible.builtin.copy:
+    src: "{{ p10k_python_script_src | default('p10k_setup.py') }}"
+    dest: "{{ p10k_script_dest | default('/usr/local/bin/p10k_setup.py') }}"
+    mode: "0755"
+
+- name: Optionally set zsh as default shell
+  ansible.builtin.command: "chsh -s /bin/zsh {{ ansible_env.USER }}"
+  when: set_zsh_default | default(false)
+  become: true
+  changed_when: false
