@@ -71,7 +71,7 @@
 
 - name: Install the interactive p10k setup helper
   ansible.builtin.copy:
-    src: "{{ p10k_python_script_src | default('p10k_setup.py') }}"
+    src: "p10k_setup.py"
     dest: "{{ p10k_script_dest | default('/usr/local/bin/p10k_setup.py') }}"
     mode: "0755"
 
