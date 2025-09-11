@@ -9,5 +9,6 @@
     - brewPackages.yml
   roles:
     - brewPackages
-    - installOhMyZSH
+    - ohmyzsh 
+    - powerlevel10k
     # - anotherRole <- Add more roles here
