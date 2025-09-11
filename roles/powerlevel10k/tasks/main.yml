@@ -19,11 +19,30 @@
     gather_subset:
       - env
 
+- name: Gather facts for architecture (hardware subset)
+  ansible.builtin.setup:
+    gather_subset:
+      - hardware
+
 - name: Ensure git is present (Homebrew or system)
   ansible.builtin.command: /usr/bin/git --version
   register: git_check
   changed_when: false
   failed_when: git_check.rc not in [0]
+
+- name: Detect Homebrew (Apple Silicon) path
+  ansible.builtin.stat:
+    path: /opt/homebrew/bin/brew
+  register: opt_brew
+
+- name: Set Homebrew prefix for Powerlevel10k
+  ansible.builtin.set_fact:
+    p10k_prefix: "{{ '/opt/homebrew' if (ansible_system == 'Darwin' and (ansible_machine in ['arm64','aarch64'] or (opt_brew.stat.exists | default(false)))) else '/usr/local' }}"
+
+- name: Compute Powerlevel10k destination paths
+  ansible.builtin.set_fact:
+    p10k_default_dest: "{{ p10k_prefix }}/share/p10k_default.zsh"
+    p10k_script_dest_effective: "{{ p10k_script_dest | default(p10k_prefix + '/bin/p10k_setup.py') }}"
 
 - name: Ensure Oh My Zsh is installed
   ansible.builtin.stat:
@@ -37,7 +56,7 @@
   args:
     executable: /bin/zsh
     chdir: "{{ ansible_env.HOME }}"
-  when: not ohmyzsh_dir.stat.exists
+  when: (p10k_install_ohmyzsh_if_missing | default(true)) and (not ohmyzsh_dir.stat.exists)
 
 - name: Clone Powerlevel10k (if not present)
   ansible.builtin.git:
@@ -63,17 +82,50 @@
     backup: no
 
 - name: Optionally install a default .p10k.zsh for Option 1
-  ansible.builtin.template:
-    src: "p10k_default_src.j2"
-    dest: "/usr/local/share/p10k_default.zsh"
+  ansible.builtin.file:
+    path: "{{ p10k_default_dest | dirname }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Install a default .p10k.zsh from provided source (if set)
+  ansible.builtin.copy:
+    src: "{{ p10k_default_src }}"
+    dest: "{{ p10k_default_dest }}"
     mode: "0644"
   when: p10k_default_src is defined
+  become: true
+
+- name: Install built-in default .p10k.zsh
+  ansible.builtin.template:
+    src: "p10k_default_src.j2"
+    dest: "{{ p10k_default_dest }}"
+    mode: "0644"
+  when: p10k_default_src is not defined
+  become: true
+
+- name: Install the interactive p10k setup helper
+  ansible.builtin.file:
+    path: "{{ p10k_script_dest_effective | dirname }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Install interactive p10k setup helper from provided source (if set)
+  ansible.builtin.copy:
+    src: "{{ p10k_python_script_src }}"
+    dest: "{{ p10k_script_dest_effective }}"
+    mode: "0755"
+  when: p10k_python_script_src is defined
+  become: true
 
 - name: Install the interactive p10k setup helper
   ansible.builtin.copy:
     src: "p10k_setup.py"
-    dest: "{{ p10k_script_dest | default('/usr/local/bin/p10k_setup.py') }}"
+    dest: "{{ p10k_script_dest_effective }}"
     mode: "0755"
+  when: p10k_python_script_src is not defined
+  become: true
 
 - name: Optionally set zsh as default shell
   ansible.builtin.command: "chsh -s /bin/zsh {{ ansible_env.USER }}"

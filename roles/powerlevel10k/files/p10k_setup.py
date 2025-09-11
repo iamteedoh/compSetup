@@ -7,7 +7,17 @@ from pathlib import Path
 HOME = Path.home()
 ZSHRC = HOME / ".zshrc"
 P10K_DEST = HOME / ".p10k.zsh"
-DEFAULT_SRC = Path("/usr/local/share/p10k_default.zsh")  # installed by the role
+# Prefer Apple Silicon Homebrew share if present, otherwise fallback to Intel prefix
+DEFAULT_SRC_CANDIDATES = [
+    Path("/opt/homebrew/share/p10k_default.zsh"),
+    Path("/usr/local/share/p10k_default.zsh"),
+]
+
+def _detect_default_src() -> Path | None:
+    for candidate in DEFAULT_SRC_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return None
 
 def ensure_zshrc_sources_p10k():
     ZSHRC.parent.mkdir(parents=True, exist_ok=True)
@@ -29,13 +39,14 @@ def backup_existing_p10k():
         print(f"Backed up existing {P10K_DEST} to {bkp}")
 
 def use_default():
-    if not DEFAULT_SRC.exists():
-        print(f"Default file not found at {DEFAULT_SRC}. "
-              f"Make sure your Ansible role copied it (set p10k_default_src).")
+    default_src = _detect_default_src()
+    if not default_src:
+        print("Default p10k configuration not found at /opt/homebrew/share or /usr/local/share.\n"
+              "Make sure your Ansible role copied it (set p10k_default_src) or run the wizard.")
         return
     backup_existing_p10k()
-    shutil.copy2(DEFAULT_SRC, P10K_DEST)
-    print(f"Copied default config to {P10K_DEST}")
+    shutil.copy2(default_src, P10K_DEST)
+    print(f"Copied default config from {default_src} to {P10K_DEST}")
 
 def run_wizard():
     # Ensure theme & oh-my-zsh are installed and ZSH_THEME is set by the role.

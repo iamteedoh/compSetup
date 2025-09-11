@@ -16,6 +16,8 @@ echo -e "${YELLOW}[$TIMESTAMP] Starting macOS bootstrap script...${NC}" | tee "$
 ## Prime sudo (caches credentials for other parts)
 echo -e "${YELLOW}Validating sudo access...${NC}" | tee -a "$LOGFILE"
 sudo -v
+# Keep sudo alive for the duration of this script to avoid re-prompts
+while true; do sudo -n true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done 2>/dev/null &
 
 ## Ensure /usr/local/share/zsh is writable by current user
 echo -e "${YELLOW}Ensuring /usr/local/share/zsh is writable...${NC}" | tee -a "$LOGFILE"
