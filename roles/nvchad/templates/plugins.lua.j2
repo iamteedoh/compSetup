@@ -1,6 +1,8 @@
 -- Ensure tree and treesitter are present (NVChad includes these by default, but we pin/ensure)
 return {
-  { "nvim-tree/nvim-tree.lua", lazy = false },
+  { "nvim-tree/nvim-tree.lua", lazy = false, config = function()
+      require("nvim-tree").setup{}
+    end },
   { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
   -- NERDTree (optional, classic tree)
   { "preservim/nerdtree", lazy = true, cmd = { "NERDTree", "NERDTreeToggle" } },
