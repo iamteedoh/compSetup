@@ -15,6 +15,8 @@
 #   set_zsh_default:  whether to chsh -s /bin/zsh (default: false)
 #   p10k_install_fonts: whether to install Nerd Fonts via Homebrew (default: true)
 #   p10k_font_cask: the Nerd Font cask to install (default: font-meslo-lg-nerd-font)
+#   p10k_install_fira_fonts: whether to install Fira fonts (default: true)
+#   p10k_fira_font_casks: list of Fira-related casks (default: [font-fira-code-nerd-font, font-fira-mono-nerd-font])
 
 - name: Gather facts for $HOME, etc.
   ansible.builtin.setup:
@@ -92,6 +94,18 @@
     - (p10k_install_fonts | default(true)) | bool
   register: p10k_font_install
   changed_when: '"Installing" in (p10k_font_install.stdout | default(""))'
+  failed_when: false
+
+- name: Install Fira fonts (optional)
+  ansible.builtin.command: "{{ p10k_prefix }}/bin/brew install --cask {{ item }}"
+  environment: "{{ p10k_brew_env }}"
+  when:
+    - ansible_system == 'Darwin'
+    - (p10k_install_fonts | default(true)) | bool
+    - (p10k_install_fira_fonts | default(true)) | bool
+  loop: "{{ p10k_fira_font_casks | default(['font-fira-code-nerd-font','font-fira-mono-nerd-font']) }}"
+  register: p10k_fira_install
+  changed_when: false
   failed_when: false
 
 - name: Ensure ZSH_THEME is set to powerlevel10k/powerlevel10k
