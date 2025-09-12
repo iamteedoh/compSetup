@@ -44,6 +44,11 @@
     p10k_default_dest: "{{ p10k_prefix }}/share/p10k_default.zsh"
     p10k_script_dest_effective: "{{ p10k_script_dest | default(p10k_prefix + '/bin/p10k_setup.py') }}"
 
+- name: Determine owner and group for helper file
+  ansible.builtin.set_fact:
+    p10k_owner: "{{ ansible_env.USER | default(ansible_user_id) }}"
+    p10k_group: "{{ ansible_user_gid | default(ansible_env.USER) }}"
+
 - name: Ensure Oh My Zsh is installed
   ansible.builtin.stat:
     path: "{{ ansible_env.HOME }}/.oh-my-zsh"
@@ -116,6 +121,8 @@
     src: "{{ p10k_python_script_src }}"
     dest: "{{ p10k_script_dest_effective }}"
     mode: "0755"
+    owner: "{{ p10k_owner }}"
+    group: "{{ p10k_group }}"
   when: p10k_python_script_src is defined
   become: true
 
@@ -124,6 +131,8 @@
     src: "p10k_setup.py"
     dest: "{{ p10k_script_dest_effective }}"
     mode: "0755"
+    owner: "{{ p10k_owner }}"
+    group: "{{ p10k_group }}"
   when: p10k_python_script_src is not defined
   become: true
 
@@ -142,6 +151,8 @@
     dest: "/usr/local/bin/p10k_setup.py"
     state: link
     force: true
+    owner: "{{ p10k_owner }}"
+    group: "{{ p10k_group }}"
   when:
     - ansible_system == 'Darwin'
     - usr_local_bin.stat.exists
@@ -159,6 +170,8 @@
     dest: "/opt/homebrew/bin/p10k_setup.py"
     state: link
     force: true
+    owner: "{{ p10k_owner }}"
+    group: "{{ p10k_group }}"
   when:
     - ansible_system == 'Darwin'
     - opt_home_bin.stat.exists
