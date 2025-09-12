@@ -179,11 +179,17 @@
   failed_when: false
   register: formula_dupe_list
 
-- name: Compute cask-formula duplicates
+- name: Compute cask names
   set_fact:
     cask_names: "{{ (cask_dupe_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list }}"
+
+- name: Compute formula names
+  set_fact:
     formula_names: "{{ (formula_dupe_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list }}"
-    cask_formula_duplicates: "{{ (cask_names | intersect(formula_names)) | list }}"
+
+- name: Compute cask-formula duplicates
+  set_fact:
+    cask_formula_duplicates: "{{ (cask_names | default([])) | intersect(formula_names | default([])) | list }}"
 
 - name: Uninstall duplicate formulae that also have casks
   when: (cask_formula_duplicates | default([])) | length > 0
