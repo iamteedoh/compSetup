@@ -1,0 +1,25 @@
+-- NVChad custom configuration
+-- Enable tree (nvim-tree) and ensure basic plugins are active
+
+local M = {}
+
+M.ui = {
+  theme = "onedark",
+}
+
+M.plugins = {
+  user = {
+    { "nvim-tree/nvim-tree.lua", lazy = false },
+  },
+}
+
+M.mappings = {
+  n = {
+    -- Toggle file tree
+    ["<leader>e"] = { function() require("nvim-tree.api").tree.toggle() end, "Toggle file tree" },
+  },
+}
+
+return M
+
+

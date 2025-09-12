@@ -1,0 +1,48 @@
+---
+# Role: nvchad
+# Installs Neovim (via Homebrew), NVChad, and applies user config overrides.
+
+- name: Ensure Neovim is installed
+  ansible.builtin.command: brew install neovim
+  register: nvim_install
+  changed_when: "'Installing' in (nvim_install.stdout | default('')) or nvim_install.rc == 0"
+  failed_when: false
+
+- name: Gather $HOME
+  ansible.builtin.setup:
+    gather_subset:
+      - env
+
+- name: Ensure Neovim config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/nvim"
+    state: directory
+    mode: "0755"
+
+- name: Clone NVChad (if not present)
+  ansible.builtin.git:
+    repo: https://github.com/NvChad/NvChad
+    dest: "{{ ansible_env.HOME }}/.config/nvim"
+    version: v2.5
+    update: no
+  when: not (ansible_env.HOME + '/.config/nvim/init.lua') | path_exists
+
+- name: Ensure NVChad custom config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/nvim/lua/custom"
+    state: directory
+    mode: "0755"
+
+- name: Deploy NVChad custom config (options.lua)
+  ansible.builtin.template:
+    src: options.lua.j2
+    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/options.lua"
+    mode: "0644"
+
+- name: Deploy NVChad custom config (chadrc.lua)
+  ansible.builtin.template:
+    src: chadrc.lua.j2
+    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/chadrc.lua"
+    mode: "0644"
+
+

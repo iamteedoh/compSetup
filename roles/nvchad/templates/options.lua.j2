@@ -1,0 +1,15 @@
+-- Custom NVChad options
+-- Syntax highlighting (treesitter is handled by NVChad plugins)
+vim.o.termguicolors = true
+
+-- Line numbers
+vim.wo.number = true
+vim.wo.relativenumber = false
+
+-- Wrap at 80 columns
+vim.o.wrap = true
+vim.o.textwidth = 80
+vim.o.colorcolumn = "80"
+vim.o.formatoptions = vim.o.formatoptions .. "t"
+
+

@@ -11,4 +11,5 @@
     - brewPackages
     - ohmyzsh 
     - powerlevel10k
+    - nvchad
     # - anotherRole <- Add more roles here

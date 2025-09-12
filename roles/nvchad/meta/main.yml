@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  author: you
+  description: Install Neovim + NVChad with sane defaults
+  license: GPLv3
+  platforms:
+    - name: macOS
+      versions: [ all ]
+dependencies: []
+
+
