@@ -19,13 +19,18 @@
     state: directory
     mode: "0755"
 
+- name: Check if NVChad is already installed
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.config/nvim/init.lua"
+  register: nvim_init
+
 - name: Clone NVChad (if not present)
   ansible.builtin.git:
     repo: https://github.com/NvChad/NvChad
     dest: "{{ ansible_env.HOME }}/.config/nvim"
     version: v2.5
     update: no
-  when: not (ansible_env.HOME + '/.config/nvim/init.lua') | path_exists
+  when: not nvim_init.stat.exists
 
 - name: Ensure NVChad custom config directory exists
   ansible.builtin.file:
