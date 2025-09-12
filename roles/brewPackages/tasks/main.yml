@@ -89,6 +89,7 @@
       shell: |
         set -euo pipefail
         pattern="{{ item | replace('-', ' ') | lower }}"
+        pattern2="$(printf '%s' "$pattern" | sed -E 's/[0-9]+$//')"
         found=""
         for dir in /Applications ~/Applications; do
           if [ -d "$dir" ]; then
@@ -97,7 +98,7 @@
               base="${name%.app}"
               lower="$(printf '%s' "$base" | tr '[:upper:]' '[:lower:]')"
               case "$lower" in
-                *$pattern*) echo "$app"; exit 0;;
+                *$pattern*|*$pattern2*) echo "$app"; exit 0;;
               esac
             done < <(ls -1 "$dir"/*.app 2>/dev/null || true)
           fi
@@ -129,14 +130,7 @@
   rescue:
     - debug:
         msg: "ARM cask install encountered errors; proceeding to Intel fallback where applicable."
-  community.general.homebrew_cask:
-    name: "__noop__"
-    state: present
-  when: false
 
-- name: Install casks via ARM brew
-  when: false
-  command: "/bin/true"
 
 - name: Fallback casks to Intel brew (only those that failed on ARM)
   when: (brew_casks | default([])) | length > 0
