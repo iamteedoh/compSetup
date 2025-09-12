@@ -32,6 +32,7 @@ opt.smartindent = true
 opt.cursorline = true
 vim.wo.cursorline = true
 opt.cursorcolumn = true
+opt.cursorlineopt = "both"
 
 -- Enforce line numbers and cursorline on new windows/buffers
 vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter"}, {
