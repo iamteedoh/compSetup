@@ -142,11 +142,15 @@ echo "== Reached: Ansible role (final) section ==" | tee -a "$LOGFILE"
 if [[ -f "$PLAYBOOK" ]]; then
   echo -e "${YELLOW}Running Ansible playbook: ${PLAYBOOK}${NC}" | tee -a "$LOGFILE"
   if [[ "$INSTALL_VSCODE_EXTENSIONS" == "true" ]]; then
-    EXTRA_JSON='{"install_vscode_extensions": true}'
+    VSCODE_FLAG=true
   else
-    EXTRA_JSON='{"install_vscode_extensions": false}'
+    VSCODE_FLAG=false
   fi
-  log_and_run "ansible-playbook $PLAYBOOK --extra-vars '$EXTRA_JSON'"
+  VARS_FILE=$(mktemp -t ansible-vars.XXXXXX)
+  chmod 600 "$VARS_FILE"
+  printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s"}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" > "$VARS_FILE"
+  log_and_run "ansible-playbook $PLAYBOOK --extra-vars @\"$VARS_FILE\""
+  rm -f "$VARS_FILE" 2>/dev/null || true
   echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"
 else
   echo -e "${RED}Playbook $PLAYBOOK not found. Exiting.${NC}" | tee -a "$LOGFILE"
