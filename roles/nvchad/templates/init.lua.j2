@@ -45,12 +45,17 @@ vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter"}, {
 })
 
 -- Enforce 85-char hard wrap locally on load and filetype changes
-vim.api.nvim_create_autocmd({"BufRead","BufNewFile","FileType"}, {
+local wrapgrp = vim.api.nvim_create_augroup("CustomWrap85", { clear = true })
+vim.api.nvim_create_autocmd({"BufRead","BufNewFile","FileType","BufEnter","InsertEnter"}, {
+  group = wrapgrp,
   callback = function()
+    -- enforce local textwidth
     vim.opt_local.textwidth = 85
-    if not string.find(vim.opt_local.formatoptions:get(), "t", 1, true) then
-      vim.opt_local.formatoptions:append("t")
-    end
+    -- normalize formatoptions: ensure 't' present and remove 'l' that blocks wrapping
+    local fo = vim.api.nvim_get_option_value('formatoptions', { scope = 'local' })
+    fo = fo:gsub('l','')
+    if not fo:match('t') then fo = fo .. 't' end
+    vim.api.nvim_set_option_value('formatoptions', fo, { scope = 'local' })
   end,
 })
 
