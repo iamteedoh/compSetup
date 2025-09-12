@@ -46,19 +46,19 @@ vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter"}, {
 -- Force highlight after colorscheme loads
 vim.api.nvim_create_autocmd("ColorScheme", {
   callback = function()
-    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36" })
-    vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true })
+    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36", ctermbg = 0, cterm = "NONE" })
+    vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true, ctermbg = 0, cterm = "bold" })
   end,
 })
 
 -- Also set highlights immediately and on VimEnter to ensure they stick
-vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36" })
-vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true })
+vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36", ctermbg = 0, cterm = "NONE" })
+vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true, ctermbg = 0, cterm = "bold" })
 
 vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
-    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36" })
-    vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true })
+    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36", ctermbg = 0, cterm = "NONE" })
+    vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true, ctermbg = 0, cterm = "bold" })
   end,
 })
 
