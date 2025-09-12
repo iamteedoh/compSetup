@@ -164,6 +164,35 @@
 #########################################################
 # 4) FORMULAE (ARM first, Intel fallback)
 #########################################################
+
+- name: Get installed ARM cask names for duplicate detection
+  command: "{{ arch_arm }} {{ arm_brew_bin }} list --cask --versions"
+  environment: "{{ brew_env }}"
+  changed_when: false
+  failed_when: false
+  register: cask_dupe_list
+
+- name: Get installed ARM formula names for duplicate detection
+  command: "{{ arch_arm }} {{ arm_brew_bin }} list --formula --versions"
+  environment: "{{ brew_env }}"
+  changed_when: false
+  failed_when: false
+  register: formula_dupe_list
+
+- name: Compute cask-formula duplicates
+  set_fact:
+    cask_names: "{{ (cask_dupe_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list }}"
+    formula_names: "{{ (formula_dupe_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list }}"
+    cask_formula_duplicates: "{{ (cask_names | intersect(formula_names)) | list }}"
+
+- name: Uninstall duplicate formulae that also have casks
+  when: (cask_formula_duplicates | default([])) | length > 0
+  command: "{{ arch_arm }} {{ arm_brew_bin }} uninstall --formula {{ item }}"
+  loop: "{{ cask_formula_duplicates | default([]) }}"
+  register: uninstall_dupe_formulas
+  changed_when: "uninstall_dupe_formulas.rc == 0"
+  failed_when: false
+
 - name: Get installed ARM formula list
   command: "{{ arch_arm }} {{ arm_brew_bin }} list --formula --versions"
   environment: "{{ brew_env }}"
