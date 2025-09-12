@@ -82,11 +82,29 @@
 #########################################################
 # 3) CASKS (ARM first, Intel fallback)
 #########################################################
-- name: Install casks via ARM brew
+- name: Get installed ARM cask list
   when: (brew_casks | default([])) | length > 0
+  command: "{{ arch_arm }} {{ arm_brew_bin }} list --cask --versions"
+  environment: "{{ brew_env }}"
+  changed_when: false
+  failed_when: false
+  register: cask_arm_list
+
+- name: Compute pending casks (not yet present in ARM list)
+  when: (brew_casks | default([])) | length > 0
+  set_fact:
+    casks_pending: >-
+      {{
+        (brew_casks | default([])) | difference(
+          (cask_arm_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list
+        )
+      }}
+
+- name: Install casks via ARM brew
+  when: (casks_pending | default([])) | length > 0
   command: "{{ arch_arm }} {{ arm_brew_bin }} install --cask {{ item }}"
   environment: "{{ brew_env }}"
-  loop: "{{ brew_casks | default([]) }}"
+  loop: "{{ casks_pending | default([]) }}"
   register: cask_arm
   changed_when: >
     'Purging' in (cask_arm.stdout | default('')) or
