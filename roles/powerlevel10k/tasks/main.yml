@@ -127,6 +127,44 @@
   when: p10k_python_script_src is not defined
   become: true
 
+- name: Announce installed helper path
+  ansible.builtin.debug:
+    msg: "Installed p10k_setup.py to {{ p10k_script_dest_effective }}"
+
+- name: Check if /usr/local/bin exists
+  ansible.builtin.stat:
+    path: "/usr/local/bin"
+  register: usr_local_bin
+
+- name: Create compatibility symlink in /usr/local/bin (if different)
+  ansible.builtin.file:
+    src: "{{ p10k_script_dest_effective }}"
+    dest: "/usr/local/bin/p10k_setup.py"
+    state: link
+    force: true
+  when:
+    - ansible_system == 'Darwin'
+    - usr_local_bin.stat.exists
+    - p10k_script_dest_effective != '/usr/local/bin/p10k_setup.py'
+  become: true
+
+- name: Check if /opt/homebrew/bin exists
+  ansible.builtin.stat:
+    path: "/opt/homebrew/bin"
+  register: opt_home_bin
+
+- name: Create compatibility symlink in /opt/homebrew/bin (if different)
+  ansible.builtin.file:
+    src: "{{ p10k_script_dest_effective }}"
+    dest: "/opt/homebrew/bin/p10k_setup.py"
+    state: link
+    force: true
+  when:
+    - ansible_system == 'Darwin'
+    - opt_home_bin.stat.exists
+    - p10k_script_dest_effective != '/opt/homebrew/bin/p10k_setup.py'
+  become: true
+
 - name: Optionally set zsh as default shell
   ansible.builtin.command: "chsh -s /bin/zsh {{ ansible_env.USER }}"
   when: set_zsh_default | default(false)

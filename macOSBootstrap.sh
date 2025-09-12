@@ -15,9 +15,20 @@ echo -e "${YELLOW}[$TIMESTAMP] Starting macOS bootstrap script...${NC}" | tee "$
 
 ## Prime sudo (caches credentials for other parts)
 echo -e "${YELLOW}Validating sudo access...${NC}" | tee -a "$LOGFILE"
-sudo -v
+echo -ne "${YELLOW}Enter your macOS password (used for sudo and Ansible): ${NC}"
+stty -echo
+read -r SUDO_PASS
+stty echo
+echo
+if ! printf "%s\n" "$SUDO_PASS" | sudo -S -v >/dev/null 2>&1; then
+  echo -e "${RED}Failed to validate sudo credentials. Exiting.${NC}" | tee -a "$LOGFILE"
+  exit 1
+fi
 # Keep sudo alive for the duration of this script to avoid re-prompts
 while true; do sudo -n true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done 2>/dev/null &
+# Provide Ansible with the become password via environment (avoids interactive prompts)
+export ANSIBLE_BECOME_PASSWORD="$SUDO_PASS"
+unset SUDO_PASS
 
 ## Ensure /usr/local/share/zsh is writable by current user
 echo -e "${YELLOW}Ensuring /usr/local/share/zsh is writable...${NC}" | tee -a "$LOGFILE"
@@ -63,7 +74,16 @@ if ! brew config >/dev/null 2>&1; then
   log_and_run "brew update --force"
   log_and_run "brew upgrade"
 else
-  echo -e "${GREEN}Homebrew installation is functional. Skipping repair.${NC}" | tee -a "$LOGFILE"
+  echo -e "${GREEN}Homebrew installation is functional.${NC}" | tee -a "$LOGFILE"
+  echo -e "${YELLOW}Checking for outdated packages and upgrading...${NC}" | tee -a "$LOGFILE"
+  OUTDATED_COUNT=$(brew outdated | wc -l | tr -d ' ')
+  if [[ "$OUTDATED_COUNT" -gt 0 ]]; then
+    echo -e "${YELLOW}$OUTDATED_COUNT packages are outdated. Upgrading...${NC}" | tee -a "$LOGFILE"
+    log_and_run "brew upgrade"
+    echo -e "${GREEN}Homebrew packages upgraded.${NC}" | tee -a "$LOGFILE"
+  else
+    echo -e "${GREEN}No outdated Homebrew packages found.${NC}" | tee -a "$LOGFILE"
+  fi
 fi
 
 
@@ -121,7 +141,7 @@ fi
 echo "== Reached: Ansible role (final) section ==" | tee -a "$LOGFILE"
 if [[ -f "$PLAYBOOK" ]]; then
   echo -e "${YELLOW}Running Ansible playbook: ${PLAYBOOK}${NC}" | tee -a "$LOGFILE"
-  log_and_run "ansible-playbook $PLAYBOOK -e \"install_vscode_extensions=$INSTALL_VSCODE_EXTENSIONS\""
+  log_and_run "ansible-playbook $PLAYBOOK -e \"install_vscode_extensions=$INSTALL_VSCODE_EXTENSIONS ansible_become_password=$ANSIBLE_BECOME_PASSWORD\""
   echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"
 else
   echo -e "${RED}Playbook $PLAYBOOK not found. Exiting.${NC}" | tee -a "$LOGFILE"
