@@ -4,6 +4,10 @@ local opt = vim.opt
 -- Truecolor for better highlighting
 opt.termguicolors = true
 
+-- Ensure syntax highlighting and filetype detection/indentation
+vim.cmd([[syntax on]])
+vim.cmd([[filetype plugin indent on]])
+
 -- Line numbers
 opt.number = true
 opt.relativenumber = false
@@ -15,5 +19,11 @@ opt.colorcolumn = "80"
 opt.wrap = true
 opt.textwidth = 80
 opt.formatoptions:append("t")
+
+-- Sensible defaults for indentation (overridden by ftplugins below)
+opt.expandtab = true
+opt.shiftwidth = 2
+opt.tabstop = 2
+opt.smartindent = true
 
 

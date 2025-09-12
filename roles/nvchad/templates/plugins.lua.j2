@@ -2,6 +2,17 @@
 return {
   { "nvim-tree/nvim-tree.lua", lazy = false },
   { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
+  -- Treesitter grammars you commonly use
+  {
+    "nvim-treesitter/nvim-treesitter",
+    opts = {
+      ensure_installed = {
+        "lua","vim","vimdoc","bash","python","yaml","json","markdown","markdown_inline","go","rust","javascript","typescript"
+      },
+      highlight = { enable = true },
+      indent = { enable = true },
+    },
+  },
 }
 
 

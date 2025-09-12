@@ -84,4 +84,15 @@
   changed_when: false
   failed_when: false
 
+- name: Headless sanity check: open a Lua buffer to trigger highlighting
+  ansible.builtin.shell: |
+    set -euo pipefail
+    printf '%s\n' '-- sanity.lua' 'local x = 1' | nvim --headless '+set ft=lua' '+syntax on' '+silent write! /tmp/.nvim_sanity.lua' '+q'
+  args:
+    executable: /bin/bash
+  environment:
+    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:{{ ansible_env.PATH }}"
+  changed_when: false
+  failed_when: false
+
 
