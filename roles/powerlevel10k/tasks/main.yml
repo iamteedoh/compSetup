@@ -77,15 +77,6 @@
     version: master
     update: no
 
-- name: Ensure Nerd Font tap is added (homebrew/cask-fonts)
-  community.general.homebrew_tap:
-    name: homebrew/cask-fonts
-    state: present
-  environment: "{{ p10k_brew_env }}"
-  when:
-    - ansible_system == 'Darwin'
-    - (p10k_install_fonts | default(true)) | bool
-
 - name: Install recommended Nerd Font for Powerlevel10k
   community.general.homebrew_cask:
     name: "{{ p10k_font_cask | default('font-0xproto-nerd-font') }}"
