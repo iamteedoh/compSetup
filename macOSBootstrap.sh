@@ -75,6 +75,18 @@ if ! brew config >/dev/null 2>&1; then
   log_and_run "brew upgrade"
 else
   echo -e "${GREEN}Homebrew installation is functional.${NC}" | tee -a "$LOGFILE"
+  # Proactively remove duplicate formulae when a cask of the same name is installed (e.g., handbrake)
+  echo -e "${YELLOW}Checking for cask/formula duplicates before upgrade...${NC}" | tee -a "$LOGFILE"
+  DEDUPE_SCRIPT='\n'
+  DEDUPE_SCRIPT+='casks=$(brew list --cask --versions 2>/dev/null | awk '{print $1}')\n'
+  DEDUPE_SCRIPT+='formulas=$(brew list --formula --versions 2>/dev/null | awk '{print $1}')\n'
+  DEDUPE_SCRIPT+='for n in $casks; do\n'
+  DEDUPE_SCRIPT+='  if echo "$formulas" | grep -qx "$n"; then\n'
+  DEDUPE_SCRIPT+='    echo "Uninstalling duplicate formula: $n (cask present)"\n'
+  DEDUPE_SCRIPT+='    brew uninstall --formula "$n" || true\n'
+  DEDUPE_SCRIPT+='  fi\n'
+  DEDUPE_SCRIPT+='done\n'
+  log_and_run "bash -c '$DEDUPE_SCRIPT'"
   echo -e "${YELLOW}Checking for outdated packages and upgrading...${NC}" | tee -a "$LOGFILE"
   OUTDATED_COUNT=$(brew outdated | wc -l | tr -d ' ')
   if [[ "$OUTDATED_COUNT" -gt 0 ]]; then
