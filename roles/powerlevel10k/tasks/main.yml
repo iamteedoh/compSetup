@@ -91,7 +91,7 @@
     - ansible_system == 'Darwin'
     - (p10k_install_fonts | default(true)) | bool
   register: p10k_font_install
-  changed_when: "Installing" in (p10k_font_install.stdout | default(''))
+  changed_when: '"Installing" in (p10k_font_install.stdout | default(""))'
   failed_when: false
 
 - name: Ensure ZSH_THEME is set to powerlevel10k/powerlevel10k
