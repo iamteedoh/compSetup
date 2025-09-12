@@ -18,9 +18,9 @@ vim.wo.relativenumber = false
 -- opt.colorcolumn = "80,81"
 -- vim.api.nvim_set_hl(0, "ColorColumn", { bg = "#434C5E" })
 
--- Wrap and hard wrap at 80
+-- Wrap and hard wrap at 85
 opt.wrap = true
-opt.textwidth = 80
+opt.textwidth = 85
 opt.formatoptions:append("t")
 
 -- Sensible defaults for indentation (overridden by ftplugins below)
@@ -41,6 +41,16 @@ vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter"}, {
     vim.wo.number = true
     vim.wo.relativenumber = false
     vim.wo.cursorline = true
+  end,
+})
+
+-- Enforce 85-char hard wrap locally on load and filetype changes
+vim.api.nvim_create_autocmd({"BufRead","BufNewFile","FileType"}, {
+  callback = function()
+    vim.opt_local.textwidth = 85
+    if not string.find(vim.opt_local.formatoptions:get(), "t", 1, true) then
+      vim.opt_local.formatoptions:append("t")
+    end
   end,
 })
 
