@@ -84,13 +84,55 @@
 #########################################################
 - name: Install casks via ARM brew (idempotent)
   when: (brew_casks | default([])) | length > 0
+  block:
+    - name: Detect pre-existing app bundles for requested casks
+      shell: |
+        set -euo pipefail
+        pattern="{{ item | replace('-', ' ') | lower }}"
+        found=""
+        for dir in /Applications ~/Applications; do
+          if [ -d "$dir" ]; then
+            while IFS= read -r app; do
+              name="${app##*/}"
+              base="${name%.app}"
+              lower="$(printf '%s' "$base" | tr '[:upper:]' '[:lower:]')"
+              case "$lower" in
+                *$pattern*) echo "$app"; exit 0;;
+              esac
+            done < <(ls -1 "$dir"/*.app 2>/dev/null || true)
+          fi
+        done
+      args:
+        executable: /bin/bash
+      environment: "{{ brew_env }}"
+      loop: "{{ brew_casks | default([]) }}"
+      register: app_probe
+      changed_when: false
+      failed_when: false
+
+    - name: Compute casks to install (filter out pre-existing apps)
+      set_fact:
+        casks_filtered: >-
+          {{ (brew_casks | default([])) | difference(
+               (app_probe.results | default([])) | selectattr('stdout','!=','') | map(attribute='item') | list
+             ) }}
+
+    - name: Install casks via ARM brew (module)
+      community.general.homebrew_cask:
+        name: "{{ item }}"
+        state: present
+      environment: "{{ brew_env }}"
+      loop: "{{ casks_filtered | default([]) }}"
+      register: cask_arm
+      failed_when: false
+      changed_when: false
+  rescue:
+    - debug:
+        msg: "ARM cask install encountered errors; proceeding to Intel fallback where applicable."
   community.general.homebrew_cask:
-    name: "{{ item }}"
+    name: "__noop__"
     state: present
-  environment: "{{ brew_env }}"
-  loop: "{{ brew_casks | default([]) }}"
-  register: cask_arm
-  ignore_errors: yes
+  when: false
 
 - name: Install casks via ARM brew
   when: false
@@ -103,8 +145,8 @@
       set_fact:
         casks_needing_intel: >-
           {{ (cask_arm.results | default([]))
-             | selectattr('failed','defined')
-             | selectattr('failed','equalto', true)
+             | selectattr('rc','defined')
+             | selectattr('rc','ne', 0)
              | map(attribute='item') | list }}
     - name: Ensure Rosetta is present (on-demand)
       when: (casks_needing_intel | default([])) | length > 0
