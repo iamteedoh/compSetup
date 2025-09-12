@@ -90,15 +90,29 @@
   failed_when: false
   register: cask_arm_list
 
+- name: Get installed Intel cask list (if Intel brew exists)
+  when:
+    - (brew_casks | default([])) | length > 0
+    - intel_brew.stat.exists | default(false)
+  command: "{{ arch_x86 }} {{ intel_brew_bin }} list --cask --versions"
+  environment: "{{ brew_env }}"
+  changed_when: false
+  failed_when: false
+  register: cask_intel_list
+
 - name: Compute pending casks (not yet present in ARM list)
   when: (brew_casks | default([])) | length > 0
   set_fact:
-    casks_pending: >-
+    casks_installed_any: >-
       {{
-        (brew_casks | default([])) | difference(
+        (
           (cask_arm_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list
+        ) + (
+          (cask_intel_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list
         )
       }}
+    casks_pending: >-
+      {{ (brew_casks | default([])) | difference(casks_installed_any | unique | list) }}
 
 - name: Install casks via ARM brew
   when: (casks_pending | default([])) | length > 0
