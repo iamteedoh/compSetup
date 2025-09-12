@@ -13,6 +13,8 @@
 #   p10k_script_dest: where to install the helper script (default: /usr/local/bin/p10k_setup.py)
 #   p10k_python_script_src: path to the local p10k_setup.py on your controller (default: "./p10k_setup.py")
 #   set_zsh_default:  whether to chsh -s /bin/zsh (default: false)
+#   p10k_install_fonts: whether to install Nerd Fonts via Homebrew (default: true)
+#   p10k_font_cask: the Nerd Font cask to install (default: font-meslo-lg-nerd-font)
 
 - name: Gather facts for $HOME, etc.
   ansible.builtin.setup:
@@ -43,6 +45,8 @@
   ansible.builtin.set_fact:
     p10k_default_dest: "{{ p10k_prefix }}/share/p10k_default.zsh"
     p10k_script_dest_effective: "{{ p10k_script_dest | default(p10k_prefix + '/bin/p10k_setup.py') }}"
+    p10k_brew_env:
+      PATH: "{{ p10k_prefix }}/bin:{{ p10k_prefix }}/sbin:{{ ansible_env.PATH }}"
 
 - name: Determine owner and group for helper file
   ansible.builtin.set_fact:
@@ -69,6 +73,26 @@
     dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
     version: master
     update: no
+
+- name: Ensure Nerd Font tap is added (homebrew/cask-fonts)
+  ansible.builtin.command: "{{ p10k_prefix }}/bin/brew tap homebrew/cask-fonts"
+  environment: "{{ p10k_brew_env }}"
+  when:
+    - ansible_system == 'Darwin'
+    - (p10k_install_fonts | default(true)) | bool
+    - ansible_facts['env']['PATH'] is defined
+  changed_when: false
+  failed_when: false
+
+- name: Install recommended Nerd Font for Powerlevel10k
+  ansible.builtin.command: "{{ p10k_prefix }}/bin/brew install --cask {{ p10k_font_cask | default('font-meslo-lg-nerd-font') }}"
+  environment: "{{ p10k_brew_env }}"
+  when:
+    - ansible_system == 'Darwin'
+    - (p10k_install_fonts | default(true)) | bool
+  register: p10k_font_install
+  changed_when: "Installing" in (p10k_font_install.stdout | default(''))
+  failed_when: false
 
 - name: Ensure ZSH_THEME is set to powerlevel10k/powerlevel10k
   ansible.builtin.lineinfile:
