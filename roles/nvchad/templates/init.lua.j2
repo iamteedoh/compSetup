@@ -33,4 +33,21 @@ opt.cursorline = true
 vim.wo.cursorline = true
 opt.cursorcolumn = true
 
+-- Enforce line numbers and cursorline on new windows/buffers
+vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter"}, {
+  callback = function()
+    vim.wo.number = true
+    vim.wo.relativenumber = false
+    vim.wo.cursorline = true
+  end,
+})
+
+-- Force highlight after colorscheme loads
+vim.api.nvim_create_autocmd("ColorScheme", {
+  callback = function()
+    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36" })
+    vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true })
+  end,
+})
+
 
