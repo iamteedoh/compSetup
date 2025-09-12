@@ -49,6 +49,16 @@ log_and_run() {
   return $exit_code
 }
 
+# Run a command and only write output to the log (no console echo of the command)
+run_silent() {
+  # Disabling 'e' temporarily for commands that might fail but we want to continue
+  set +e
+  bash -c "$*" >> "$LOGFILE" 2>&1
+  local exit_code=$?
+  set -e
+  return $exit_code
+}
+
 ## Check for Homebrew installation
 echo "== Reached: brew install section ==" | tee -a "$LOGFILE"
 if ! command -v brew &> /dev/null; then
@@ -77,7 +87,7 @@ else
   echo -e "${GREEN}Homebrew installation is functional.${NC}" | tee -a "$LOGFILE"
   # Proactively remove duplicate formulae when a cask of the same name is installed (e.g., handbrake)
   echo -e "${YELLOW}Checking for cask/formula duplicates before upgrade...${NC}" | tee -a "$LOGFILE"
-  log_and_run "bash -c 'c=\$(brew list --cask --versions 2>/dev/null | awk '\''{print \$1}'\''); f=\$(brew list --formula --versions 2>/dev/null | awk '\''{print \$1}'\''); for n in \$c; do if echo \"\$f\" | grep -qx \"\$n\"; then echo \"Uninstalling duplicate formula: \$n (cask present)\"; brew uninstall --formula \"\$n\" || true; fi; done'"
+  run_silent "bash -c 'c=\$(brew list --cask --versions 2>/dev/null | awk '\''{print \$1}'\''); f=\$(brew list --formula --versions 2>/dev/null | awk '\''{print \$1}'\''); for n in \$c; do if echo \"\$f\" | grep -qx \"\$n\"; then echo \"Uninstalling duplicate formula: \$n (cask present)\"; brew uninstall --formula \"\$n\" || true; fi; done'"
   echo -e "${YELLOW}Checking for outdated packages and upgrading...${NC}" | tee -a "$LOGFILE"
   OUTDATED_COUNT=$(brew outdated | wc -l | tr -d ' ')
   if [[ "$OUTDATED_COUNT" -gt 0 ]]; then
