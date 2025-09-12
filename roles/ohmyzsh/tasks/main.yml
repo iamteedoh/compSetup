@@ -11,3 +11,10 @@
   args:
     creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
   when: not ohmyzsh_dir.stat.exists
+
+- name: Deploy .zshrc from template (with aliases)
+  ansible.builtin.template:
+    src: zshrc.j2
+    dest: "{{ ansible_env.HOME }}/.zshrc"
+    mode: "0644"
+  backup: yes
