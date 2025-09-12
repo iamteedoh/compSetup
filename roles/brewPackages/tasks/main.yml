@@ -82,61 +82,30 @@
 #########################################################
 # 3) CASKS (ARM first, Intel fallback)
 #########################################################
-- name: Get installed ARM cask list
+- name: Install casks via ARM brew (idempotent)
   when: (brew_casks | default([])) | length > 0
-  command: "{{ arch_arm }} {{ arm_brew_bin }} list --cask --versions"
+  community.general.homebrew_cask:
+    name: "{{ item }}"
+    state: present
   environment: "{{ brew_env }}"
-  changed_when: false
-  failed_when: false
-  register: cask_arm_list
-
-- name: Get installed Intel cask list (if Intel brew exists)
-  when:
-    - (brew_casks | default([])) | length > 0
-    - intel_brew.stat.exists | default(false)
-  command: "{{ arch_x86 }} {{ intel_brew_bin }} list --cask --versions"
-  environment: "{{ brew_env }}"
-  changed_when: false
-  failed_when: false
-  register: cask_intel_list
-
-- name: Compute installed casks (ARM)
-  when: (brew_casks | default([])) | length > 0
-  set_fact:
-    casks_installed_arm: >-
-      {{ (cask_arm_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list }}
-
-- name: Compute installed casks (Intel if present)
-  when: (brew_casks | default([])) | length > 0
-  set_fact:
-    casks_installed_intel: >-
-      {{ (cask_intel_list.stdout_lines if (cask_intel_list is defined and cask_intel_list.stdout_lines is defined) else []) | map('regex_replace', ' .*$','') | list }}
-
-- name: Compute pending casks (not yet installed)
-  when: (brew_casks | default([])) | length > 0
-  set_fact:
-    casks_installed_any: "{{ (casks_installed_arm | default([])) + (casks_installed_intel | default([])) }}"
-    casks_pending: >-
-      {{ (brew_casks | default([])) | difference((casks_installed_any | default([])) | unique | list) }}
+  loop: "{{ brew_casks | default([]) }}"
+  register: cask_arm
+  ignore_errors: yes
 
 - name: Install casks via ARM brew
-  when: (casks_pending | default([])) | length > 0
-  command: "{{ arch_arm }} {{ arm_brew_bin }} install --cask {{ item }}"
-  environment: "{{ brew_env }}"
-  loop: "{{ casks_pending | default([]) }}"
-  register: cask_arm
-  changed_when: >
-    'Purging' in (cask_arm.stdout | default('')) or
-    'Installing' in (cask_arm.stdout | default('')) or
-    'Linking' in (cask_arm.stdout | default(''))
-  failed_when: false
+  when: false
+  command: "/bin/true"
 
 - name: Fallback casks to Intel brew (only those that failed on ARM)
   when: (brew_casks | default([])) | length > 0
   block:
     - name: Determine casks needing Intel
       set_fact:
-        casks_needing_intel: "{{ (cask_arm.results | default([])) | selectattr('rc','ne',0) | map(attribute='item') | list }}"
+        casks_needing_intel: >-
+          {{ (cask_arm.results | default([]))
+             | selectattr('failed','defined')
+             | selectattr('failed','equalto', true)
+             | map(attribute='item') | list }}
     - name: Ensure Rosetta is present (on-demand)
       when: (casks_needing_intel | default([])) | length > 0
       command: /usr/sbin/softwareupdate --install-rosetta --agree-to-license
