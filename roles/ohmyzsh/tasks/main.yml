@@ -20,6 +20,24 @@
     backup: yes
     owner: "{{ ansible_env.USER | default(ansible_user_id) }}"
 
+########################
+# Vim (.vimrc) profile #
+########################
+
+- name: Ensure ~/.vim/tmp exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.vim/tmp"
+    state: directory
+    mode: "0755"
+
+- name: Deploy .vimrc from template
+  ansible.builtin.template:
+    src: vimrc.j2
+    dest: "{{ ansible_env.HOME }}/.vimrc"
+    mode: "0644"
+    backup: yes
+    owner: "{{ ansible_env.USER | default(ansible_user_id) }}"
+
 #############################
 # Optional: colorls install #
 #############################

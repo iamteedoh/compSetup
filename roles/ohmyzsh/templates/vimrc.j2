@@ -1,0 +1,65 @@
+" My vim settings
+syntax on
+set nu
+set mouse+=a
+set backspace=indent,eol,start
+filetype indent plugin on
+" set modeline
+set backupdir=~/.vim/tmp/     " for backup files
+set directory=~/.vim/tmp/     " for swap files
+set visualbell
+set background=dark
+
+" set guifont=Inconsolata\ for\ Powerline:pixelsize=12
+let g:Powerline_symbols = 'fancy'
+set encoding=utf-8
+" set t_Co=256
+set fillchars+=stl:\ ,stlnc:\
+" set term=xterm-256color
+set termencoding=utf-8
+
+set rtp+=/usr/local/lib/python2.7/dist-packages/powerline/bindings/vim/
+set laststatus=2 " Always display the status line in all windows
+set showtabline=2 " Always display the tabline, even if there is only 1 tab
+set noshowmode " Hide the defaults mode text (e.g -- INSERT -- below the statusline)
+set t_Co=256
+
+" if has("gui_running")
+"    let s:uname = system("uname")
+"    if s:uname == "Darwin\n"
+"       set guifont=Inconsolata\ for\ Powerline:h15
+"    endif
+" endif
+
+" yaml syntax highlighting
+" au BufNewFile,BufRead *.yaml,*.yml so ~/.vim/yaml.vim
+
+" pathogen executer
+execute pathogen#infect()
+
+" syntastic options for shellcheck and vim
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 0
+let g:syntastic_check_on_wq = 0
+
+" Editorconfig setup
+" Plug 'editorconfig/editorconfig-vim'
+
+" Enable NERDTree
+" autocmd vimenter * NERDTree
+" let NERDTreeShowHidden=1
+" nmap <F6> :NERDTreeToggle<CR>
+
+" Enable or disable Syntastic Check
+" Using :SyntasticToggleMode you can toggle Syntastic into passive mode, which
+" will disable auto-checking. You can then check a file by running
+" :SyntasticCheck instead.
+
+silent! nmap <F7> :SyntasticToggleMode<CR>
+
+
