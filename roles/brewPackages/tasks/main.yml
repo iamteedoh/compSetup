@@ -100,19 +100,24 @@
   failed_when: false
   register: cask_intel_list
 
-- name: Compute pending casks (not yet present in ARM list)
+- name: Compute installed casks (ARM)
   when: (brew_casks | default([])) | length > 0
   set_fact:
-    casks_installed_any: >-
-      {{
-        (
-          (cask_arm_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list
-        ) + (
-          (cask_intel_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list
-        )
-      }}
+    casks_installed_arm: >-
+      {{ (cask_arm_list.stdout_lines | default([])) | map('regex_replace', ' .*$','') | list }}
+
+- name: Compute installed casks (Intel if present)
+  when: (brew_casks | default([])) | length > 0
+  set_fact:
+    casks_installed_intel: >-
+      {{ (cask_intel_list.stdout_lines if (cask_intel_list is defined and cask_intel_list.stdout_lines is defined) else []) | map('regex_replace', ' .*$','') | list }}
+
+- name: Compute pending casks (not yet installed)
+  when: (brew_casks | default([])) | length > 0
+  set_fact:
+    casks_installed_any: "{{ (casks_installed_arm | default([])) + (casks_installed_intel | default([])) }}"
     casks_pending: >-
-      {{ (brew_casks | default([])) | difference(casks_installed_any | unique | list) }}
+      {{ (brew_casks | default([])) | difference((casks_installed_any | default([])) | unique | list) }}
 
 - name: Install casks via ARM brew
   when: (casks_pending | default([])) | length > 0
