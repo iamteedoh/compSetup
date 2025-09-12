@@ -19,3 +19,49 @@
     mode: "0644"
     backup: yes
     owner: "{{ ansible_env.USER | default(ansible_user_id) }}"
+
+#############################
+# Optional: colorls install #
+#############################
+
+- name: Detect Homebrew prefix for ohmyzsh role
+  ansible.builtin.stat:
+    path: /opt/homebrew/bin/brew
+  register: ohmyzsh_opt_brew
+
+- name: Set Homebrew prefix (ohmyzsh)
+  ansible.builtin.set_fact:
+    ohmyzsh_brew_prefix: "{{ '/opt/homebrew' if (ansible_system == 'Darwin' and (ohmyzsh_opt_brew.stat.exists | default(false))) else '/usr/local' }}"
+
+- name: Install ruby via Homebrew for colorls (optional)
+  when: (ohmyzsh_install_colorls | default(true)) | bool
+  ansible.builtin.command: "{{ ohmyzsh_brew_prefix }}/bin/brew install ruby"
+  changed_when: false
+  failed_when: false
+
+- name: Install colorls gem (optional)
+  when: (ohmyzsh_install_colorls | default(true)) | bool
+  ansible.builtin.command: "{{ ohmyzsh_brew_prefix }}/opt/ruby/bin/gem install colorls --no-document"
+  changed_when: false
+  failed_when: false
+
+- name: Locate colorls executable path
+  when: (ohmyzsh_install_colorls | default(true)) | bool
+  ansible.builtin.shell: |
+    ls -1 {{ ohmyzsh_brew_prefix }}/lib/ruby/gems/*/bin/colorls 2>/dev/null | head -1 || true
+  args:
+    executable: /bin/bash
+  register: colorls_path
+  changed_when: false
+  failed_when: false
+
+- name: Symlink colorls into Homebrew bin
+  when:
+    - (ohmyzsh_install_colorls | default(true)) | bool
+    - (colorls_path.stdout | default('')) != ''
+  ansible.builtin.file:
+    src: "{{ colorls_path.stdout }}"
+    dest: "{{ ohmyzsh_brew_prefix }}/bin/colorls"
+    state: link
+    force: true
+  become: true
