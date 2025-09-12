@@ -74,6 +74,12 @@
     dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/highlights.lua"
     mode: "0644"
 
+- name: Ensure after/plugin directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/nvim/after/plugin"
+    state: directory
+    mode: "0755"
+
 - name: Deploy after/plugin cursorline enforcer
   ansible.builtin.template:
     src: after_cursorline.lua.j2
