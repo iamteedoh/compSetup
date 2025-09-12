@@ -50,4 +50,15 @@ vim.api.nvim_create_autocmd("ColorScheme", {
   end,
 })
 
+-- Also set highlights immediately and on VimEnter to ensure they stick
+vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36" })
+vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true })
+
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36" })
+    vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true })
+  end,
+})
+
 
