@@ -2,10 +2,21 @@
 vim.opt.number = true
 vim.opt.relativenumber = false
 vim.opt.cursorline = true
-vim.opt.cursorcolumn = true
+vim.opt.cursorcolumn = false
 vim.opt.cursorlineopt = "both"
 
 vim.api.nvim_set_hl(0, "CursorLine", { bg = "#3B4252" })
 vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFCC00", bold = true })
+
+-- Force-disable any vertical guides/columns set by themes/plugins
+vim.opt.colorcolumn = ""
+vim.api.nvim_set_hl(0, "ColorColumn", { bg = "NONE" })
+vim.api.nvim_set_hl(0, "CursorColumn", { bg = "NONE" })
+
+vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter"}, {
+  callback = function()
+    vim.wo.colorcolumn = ""
+  end,
+})
 
 
