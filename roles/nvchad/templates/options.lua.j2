@@ -1,6 +1,8 @@
 -- Custom NVChad options
 -- Syntax highlighting (treesitter is handled by NVChad plugins)
 vim.o.termguicolors = true
+vim.cmd([[syntax on]])
+vim.cmd([[filetype plugin indent on]])
 
 -- Line numbers
 vim.wo.number = true
@@ -11,5 +13,9 @@ vim.o.wrap = true
 vim.o.textwidth = 80
 vim.o.colorcolumn = "80"
 vim.o.formatoptions = vim.o.formatoptions .. "t"
+vim.o.expandtab = true
+vim.o.shiftwidth = 2
+vim.o.tabstop = 2
+vim.o.smartindent = true
 
 

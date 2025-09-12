@@ -62,6 +62,12 @@
     dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/mappings.lua"
     mode: "0644"
 
+- name: Deploy NVChad custom options (options.lua)
+  ansible.builtin.template:
+    src: options.lua.j2
+    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/options.lua"
+    mode: "0644"
+
 - name: Ensure NVChad plugins are installed (Lazy sync)
   ansible.builtin.shell: |
     set -euo pipefail
