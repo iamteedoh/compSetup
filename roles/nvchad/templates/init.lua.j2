@@ -14,8 +14,8 @@ opt.relativenumber = false
 vim.wo.number = true
 vim.wo.relativenumber = false
 
--- Line indicators (ruler at 80)
-opt.colorcolumn = "80"
+-- Line indicators (ruler at 80) - draw a slightly thicker guide (80 and 81)
+opt.colorcolumn = "80,81"
 vim.api.nvim_set_hl(0, "ColorColumn", { bg = "#434C5E" })
 
 -- Wrap and hard wrap at 80
