@@ -5,10 +5,7 @@ local M = {}
 
 M.ui = {
   theme = "onedark",
-  hl_override = {
-    CursorLine = { bg = "#2A2E36" },
-    CursorLineNr = { fg = "#FFD700", bold = true },
-  },
+  hl_override = require("custom.highlights").override,
 }
 
 M.plugins = "custom.plugins"
