@@ -14,9 +14,9 @@ opt.relativenumber = false
 vim.wo.number = true
 vim.wo.relativenumber = false
 
--- Line indicators (ruler at 80) - draw a slightly thicker guide (80 and 81)
-opt.colorcolumn = "80,81"
-vim.api.nvim_set_hl(0, "ColorColumn", { bg = "#434C5E" })
+-- Line indicators (ruler at 80) disabled by default. Re-enable by uncommenting:
+-- opt.colorcolumn = "80,81"
+-- vim.api.nvim_set_hl(0, "ColorColumn", { bg = "#434C5E" })
 
 -- Wrap and hard wrap at 80
 opt.wrap = true
@@ -47,22 +47,19 @@ vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter"}, {
 -- Force highlight after colorscheme loads
 vim.api.nvim_create_autocmd("ColorScheme", {
   callback = function()
-    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#3B4252" })
+    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2E3440" })
     vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFCC00", bold = true })
-    vim.api.nvim_set_hl(0, "ColorColumn", { bg = "#434C5E" })
   end,
 })
 
 -- Also set highlights immediately and on VimEnter to ensure they stick
-vim.api.nvim_set_hl(0, "CursorLine", { bg = "#3B4252" })
+vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2E3440" })
 vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFCC00", bold = true })
-vim.api.nvim_set_hl(0, "ColorColumn", { bg = "#434C5E" })
 
 vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
-    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#3B4252" })
+    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2E3440" })
     vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFCC00", bold = true })
-    vim.api.nvim_set_hl(0, "ColorColumn", { bg = "#434C5E" })
   end,
 })
 
