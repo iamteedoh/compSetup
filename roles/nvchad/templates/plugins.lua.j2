@@ -1,0 +1,7 @@
+-- Ensure tree and treesitter are present (NVChad includes these by default, but we pin/ensure)
+return {
+  { "nvim-tree/nvim-tree.lua", lazy = false },
+  { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
+}
+
+

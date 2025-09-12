@@ -40,8 +40,8 @@
 
 - name: Deploy NVChad custom config (options.lua)
   ansible.builtin.template:
-    src: options.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/options.lua"
+    src: init.lua.j2
+    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/init.lua"
     mode: "0644"
 
 - name: Deploy NVChad custom config (chadrc.lua)
@@ -49,5 +49,39 @@
     src: chadrc.lua.j2
     dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/chadrc.lua"
     mode: "0644"
+
+- name: Deploy NVChad custom plugins (plugins.lua)
+  ansible.builtin.template:
+    src: plugins.lua.j2
+    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/plugins.lua"
+    mode: "0644"
+
+- name: Deploy NVChad custom mappings (mappings.lua)
+  ansible.builtin.template:
+    src: mappings.lua.j2
+    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/mappings.lua"
+    mode: "0644"
+
+- name: Ensure NVChad plugins are installed (Lazy sync)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    nvim --headless "+Lazy! sync" +qa
+  args:
+    executable: /bin/bash
+  environment:
+    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:{{ ansible_env.PATH }}"
+  changed_when: false
+  failed_when: false
+
+- name: Ensure Treesitter parsers are up to date
+  ansible.builtin.shell: |
+    set -euo pipefail
+    nvim --headless "+TSUpdateSync" +qa
+  args:
+    executable: /bin/bash
+  environment:
+    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:{{ ansible_env.PATH }}"
+  changed_when: false
+  failed_when: false
 
 

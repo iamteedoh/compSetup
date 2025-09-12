@@ -1,0 +1,5 @@
+-- Keymaps
+local map = vim.keymap.set
+map("n", "<leader>e", function() require("nvim-tree.api").tree.toggle() end, { desc = "Toggle file tree" })
+
+

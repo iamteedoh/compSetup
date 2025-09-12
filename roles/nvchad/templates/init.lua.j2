@@ -1,0 +1,19 @@
+-- NVChad custom init to set core options as requested
+local opt = vim.opt
+
+-- Truecolor for better highlighting
+opt.termguicolors = true
+
+-- Line numbers
+opt.number = true
+opt.relativenumber = false
+
+-- Line indicators (ruler at 80)
+opt.colorcolumn = "80"
+
+-- Wrap and hard wrap at 80
+opt.wrap = true
+opt.textwidth = 80
+opt.formatoptions:append("t")
+
+
