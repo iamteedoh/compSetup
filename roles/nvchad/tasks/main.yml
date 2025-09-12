@@ -65,22 +65,22 @@
 - name: Ensure NVChad plugins are installed (Lazy sync)
   ansible.builtin.shell: |
     set -euo pipefail
-    nvim --headless "+Lazy! sync" +qa
+    nvim --headless '+lua require("lazy").sync()' +qa
   args:
     executable: /bin/bash
   environment:
-    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:{{ ansible_env.PATH }}"
+    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:{{ ansible_env.PATH }}"
   changed_when: false
   failed_when: false
 
 - name: Ensure Treesitter parsers are up to date
   ansible.builtin.shell: |
     set -euo pipefail
-    nvim --headless "+TSUpdateSync" +qa
+    nvim --headless '+lua require("nvim-treesitter.install").update({ with_sync = true })()' +qa
   args:
     executable: /bin/bash
   environment:
-    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:{{ ansible_env.PATH }}"
+    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:{{ ansible_env.PATH }}"
   changed_when: false
   failed_when: false
 
