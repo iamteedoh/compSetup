@@ -14,9 +14,10 @@
 #   p10k_python_script_src: path to the local p10k_setup.py on your controller (default: "./p10k_setup.py")
 #   set_zsh_default:  whether to chsh -s /bin/zsh (default: false)
 #   p10k_install_fonts: whether to install Nerd Fonts via Homebrew (default: true)
-#   p10k_font_cask: the Nerd Font cask to install (default: font-meslo-lg-nerd-font)
+#   p10k_font_cask: the Nerd Font cask to install (default: font-0xproto-nerd-font)
 #   p10k_install_fira_fonts: whether to install Fira fonts (default: true)
 #   p10k_fira_font_casks: list of Fira-related casks (default: [font-fira-code-nerd-font, font-fira-mono-nerd-font])
+#   p10k_extra_font_casks: additional font casks to install (default: [font-0xproto-nerd-font])
 
 - name: Gather facts for $HOME, etc.
   ansible.builtin.setup:
@@ -87,7 +88,7 @@
   failed_when: false
 
 - name: Install recommended Nerd Font for Powerlevel10k
-  ansible.builtin.command: "{{ p10k_prefix }}/bin/brew install --cask {{ p10k_font_cask | default('font-meslo-lg-nerd-font') }}"
+  ansible.builtin.command: "{{ p10k_prefix }}/bin/brew install --cask {{ p10k_font_cask | default('font-0xproto-nerd-font') }}"
   environment: "{{ p10k_brew_env }}"
   when:
     - ansible_system == 'Darwin'
@@ -105,6 +106,17 @@
     - (p10k_install_fira_fonts | default(true)) | bool
   loop: "{{ p10k_fira_font_casks | default(['font-fira-code-nerd-font','font-fira-mono-nerd-font']) }}"
   register: p10k_fira_install
+  changed_when: false
+  failed_when: false
+
+- name: Install additional Nerd Fonts (optional)
+  ansible.builtin.command: "{{ p10k_prefix }}/bin/brew install --cask {{ item }}"
+  environment: "{{ p10k_brew_env }}"
+  when:
+    - ansible_system == 'Darwin'
+    - (p10k_install_fonts | default(true)) | bool
+  loop: "{{ p10k_extra_font_casks | default(['font-0xproto-nerd-font']) }}"
+  register: p10k_extra_fonts_install
   changed_when: false
   failed_when: false
 
