@@ -74,6 +74,12 @@
     dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/highlights.lua"
     mode: "0644"
 
+- name: Deploy after/plugin cursorline enforcer
+  ansible.builtin.template:
+    src: after_cursorline.lua.j2
+    dest: "{{ ansible_env.HOME }}/.config/nvim/after/plugin/cursorline.lua"
+    mode: "0644"
+
 - name: Ensure NVChad plugins are installed (Lazy sync)
   ansible.builtin.shell: |
     set -euo pipefail

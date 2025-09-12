@@ -1,0 +1,11 @@
+-- Force cursorline/number highlight after all plugins/themes load
+vim.opt.number = true
+vim.opt.relativenumber = false
+vim.opt.cursorline = true
+vim.opt.cursorcolumn = true
+vim.opt.cursorlineopt = "both"
+
+vim.api.nvim_set_hl(0, "CursorLine", { bg = "#2A2E36", ctermbg = 0, cterm = "NONE" })
+vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFD700", bold = true, ctermbg = 0, cterm = "bold" })
+
+
