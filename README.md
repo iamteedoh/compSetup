@@ -84,9 +84,9 @@ cd "$HOME/git/personal/compSetup"; \
 
 ```mermaid
 flowchart TD
-  A[Start ./macOSBootstrap.sh] --> B[Prompt once for sudo\ncache credentials]
-  B --> C[Install Homebrew if missing\nsetup shellenv]
-  C --> D[Homebrew health check\nupdate/upgrade if needed]
+  A[Start ./macOSBootstrap.sh] --> B[Prompt once for sudo<br/>cache credentials]
+  B --> C[Install Homebrew if missing<br/>setup shellenv]
+  C --> D[Homebrew health check<br/>update/upgrade if needed]
   D --> E{Apple Silicon?}
   E -- Yes --> F[Ensure Rosetta 2 if needed]
   E -- No --> G[Skip Rosetta]
@@ -95,10 +95,10 @@ flowchart TD
   H --> I[Install Ansible]
   I --> J[Install Ansible collections]
   J --> K[Detect VS Code CLI]
-  K --> L[ansible-playbook site.yml\n(pass become pwd via temp vars file)]
-  L --> M[Role: brewPackages\n(taps, casks, formulae, VS Code extensions)]
-  M --> N[Role: ohmyzsh\n(install if missing)]
-  N --> O[Role: powerlevel10k\n(clone theme, set ZSH_THEME, p10k_setup.py, fonts)]
+  K --> L[Run ansible-playbook<br/>pass become password via temp vars]
+  L --> M[Role: brewPackages<br/>taps, casks, formulae, VS Code extensions]
+  M --> N[Role: ohmyzsh<br/>install if missing]
+  N --> O[Role: powerlevel10k<br/>clone theme, set ZSH_THEME, p10k_setup.py, fonts]
   O --> P[Done]
 ```
 
@@ -165,5 +165,5 @@ Note: Powerlevel10k config uses the `POWERLEVEL9K_*` variable namespace by desig
 
 ## License
 
-This project is provided under the MIT License. See `LICENSE`.
+This project is provided under the GNU General Public License v3.0. See [LICENSE](LICENSE).
 
