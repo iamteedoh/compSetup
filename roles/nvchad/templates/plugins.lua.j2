@@ -17,6 +17,31 @@ return {
       indent = { enable = true },
     },
   },
+
+  -- Ensure nvim-cmp is enabled with buffer+path sources and Ctrl-Space to trigger
+  {
+    "hrsh7th/nvim-cmp",
+    opts = function(_, opts)
+      local cmp = require("cmp")
+      opts = opts or {}
+      opts.completion = vim.tbl_deep_extend("force", opts.completion or {}, {
+        keyword_length = 2,
+        completeopt = "menu,menuone,noselect",
+      })
+      opts.mapping = cmp.mapping.preset.insert({
+        ["<C-Space>"] = cmp.mapping.complete(),
+        ["<CR>"] = cmp.mapping.confirm({ select = true }),
+        ["<C-n>"] = cmp.mapping.select_next_item(),
+        ["<C-p>"] = cmp.mapping.select_prev_item(),
+      })
+      opts.sources = cmp.config.sources({
+        { name = "nvim_lsp" },
+        { name = "path" },
+        { name = "buffer" },
+      })
+      return opts
+    end,
+  },
 }
 
 
