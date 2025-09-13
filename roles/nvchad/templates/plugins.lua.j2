@@ -23,10 +23,12 @@ return {
     "hrsh7th/nvim-cmp",
     opts = function(_, opts)
       local cmp = require("cmp")
+      local types = require("cmp.types")
       opts = opts or {}
       opts.completion = vim.tbl_deep_extend("force", opts.completion or {}, {
-        keyword_length = 2,
+        keyword_length = 1,
         completeopt = "menu,menuone,noselect",
+        autocomplete = { types.cmp.TriggerEvent.TextChanged },
       })
       opts.mapping = cmp.mapping.preset.insert({
         ["<C-Space>"] = cmp.mapping.complete(),
@@ -38,6 +40,16 @@ return {
         { name = "nvim_lsp" },
         { name = "path" },
         { name = "buffer" },
+        { name = "spell" },
+      })
+
+      -- Ensure markdown/text use spell + buffer prominently
+      cmp.setup.filetype({ "markdown", "text" }, {
+        sources = cmp.config.sources({
+          { name = "spell" },
+          { name = "buffer" },
+          { name = "path" },
+        })
       })
       return opts
     end,
