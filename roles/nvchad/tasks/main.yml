@@ -29,6 +29,12 @@
     path: "{{ ansible_env.HOME }}/.config/nvim/.git"
   register: nvim_git
 
+- name: Remove stale ~/.config/nvim when NVChad init.lua is missing
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.config/nvim"
+    state: absent
+  when: not nvim_init.stat.exists
+
 - name: Clone NVChad (if not present)
   ansible.builtin.git:
     repo: https://github.com/NvChad/NvChad
@@ -37,7 +43,7 @@
     update: yes
     force: yes
     depth: 1
-  when: not nvim_git.stat.exists
+  when: not nvim_git.stat.exists or not nvim_init.stat.exists
 
 - name: Ensure NVChad custom config directory exists
   ansible.builtin.file:
