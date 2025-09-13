@@ -7,7 +7,8 @@ local function apply_cursorline()
   vim.opt_local.cursorlineopt = "line"
   -- Dark green, "transparent-like" horizontal line highlight and bright green line number
   vim.api.nvim_set_hl(0, "CursorLine", { bg = "#103E16" })
-  vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF5F", bold = true })
+  -- Define a dedicated group for the current line number to avoid theme remaps
+  vim.api.nvim_set_hl(0, "CursorLineNrHL", { fg = "#00FF5F", bold = true })
   -- Ensure window uses CursorLine mapping
   vim.wo.winhighlight = (vim.wo.winhighlight or ""):gsub("CursorLine:[^,]+", "CursorLine:CursorLine")
   if not string.find(vim.wo.winhighlight, "CursorLine:") then
@@ -17,13 +18,13 @@ local function apply_cursorline()
       vim.wo.winhighlight = vim.wo.winhighlight .. ",CursorLine:CursorLine"
     end
   end
-  -- Ensure window uses CursorLineNr mapping
-  vim.wo.winhighlight = (vim.wo.winhighlight or ""):gsub("CursorLineNr:[^,]+", "CursorLineNr:CursorLineNr")
+  -- Ensure window uses our custom current-line number group
+  vim.wo.winhighlight = (vim.wo.winhighlight or ""):gsub("CursorLineNr:[^,]+", "CursorLineNr:CursorLineNrHL")
   if not string.find(vim.wo.winhighlight, "CursorLineNr:") then
     if vim.wo.winhighlight == "" then
-      vim.wo.winhighlight = "CursorLineNr:CursorLineNr"
+      vim.wo.winhighlight = "CursorLineNr:CursorLineNrHL"
     else
-      vim.wo.winhighlight = vim.wo.winhighlight .. ",CursorLineNr:CursorLineNr"
+      vim.wo.winhighlight = vim.wo.winhighlight .. ",CursorLineNr:CursorLineNrHL"
     end
   end
 end
