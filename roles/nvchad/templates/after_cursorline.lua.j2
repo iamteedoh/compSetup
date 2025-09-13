@@ -1,34 +1,39 @@
 -- Force cursorline/number highlight after all plugins/themes load
-vim.opt.number = true
-vim.opt.relativenumber = false
-vim.opt.cursorline = true
-vim.opt.cursorcolumn = false
-vim.opt.cursorlineopt = "line"
-
--- Dark green, "transparent-like" horizontal line highlight and bright green line number
-vim.api.nvim_set_hl(0, "CursorLine", { bg = "#103E16" })
-vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF5F", bold = true })
+local function apply_cursorline()
+  vim.opt_local.number = true
+  vim.opt_local.relativenumber = false
+  vim.opt_local.cursorline = true
+  vim.opt_local.cursorcolumn = false
+  vim.opt_local.cursorlineopt = "line"
+  -- Dark green, "transparent-like" horizontal line highlight and bright green line number
+  vim.api.nvim_set_hl(0, "CursorLine", { bg = "#103E16" })
+  vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF5F", bold = true })
+  -- Ensure window uses CursorLine mapping
+  vim.wo.winhighlight = (vim.wo.winhighlight or ""):gsub("CursorLine:[^,]+", "CursorLine:CursorLine")
+  if not string.find(vim.wo.winhighlight, "CursorLine:") then
+    if vim.wo.winhighlight == "" then
+      vim.wo.winhighlight = "CursorLine:CursorLine"
+    else
+      vim.wo.winhighlight = vim.wo.winhighlight .. ",CursorLine:CursorLine"
+    end
+  end
+end
 
 -- Force-disable any vertical guides/columns set by themes/plugins
 vim.opt.colorcolumn = ""
 vim.api.nvim_set_hl(0, "ColorColumn", { bg = "NONE" })
 vim.api.nvim_set_hl(0, "CursorColumn", { bg = "NONE" })
 
-vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter"}, {
+vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter","ColorScheme"}, {
   callback = function()
     vim.wo.colorcolumn = ""
-    -- Re-apply highlights in case a colorscheme changed them
-    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#103E16" })
-    vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF5F", bold = true })
-    -- Ensure window uses CursorLine mapping
-    local whl = vim.wo.winhighlight
-    if not whl or whl == "" then
-      vim.wo.winhighlight = "CursorLine:CursorLine"
-    elseif not whl:match("CursorLine:") then
-      vim.wo.winhighlight = whl .. ",CursorLine:CursorLine"
-    end
+    -- Re-apply after a short delay to win against late overrides
+    vim.defer_fn(apply_cursorline, 30)
   end,
 })
+
+-- Initial apply
+pcall(apply_cursorline)
 
 -- Enforce 85 char auto-wrap on insert across filetypes after all configs
 local function enforce_wrap_85()
