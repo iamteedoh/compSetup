@@ -2,8 +2,10 @@
 local M = {}
 
 M.override = {
-  CursorLine = { bg = "#2E3440", underline = true },
-  CursorLineNr = { fg = "#FFCC00", bold = true },
+  -- Stronger horizontal line highlight
+  CursorLine = { bg = "#1E2430", underline = true },
+  -- Bright green current line number
+  CursorLineNr = { fg = "#00FF5F", bold = true },
   -- ColorColumn intentionally disabled by default; re-enable if desired
   -- ColorColumn = { bg = "#434C5E" },
   -- CursorColumn = { bg = "#434C5E" },
