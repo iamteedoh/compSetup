@@ -5,8 +5,8 @@ vim.opt.cursorline = true
 vim.opt.cursorcolumn = false
 vim.opt.cursorlineopt = "both"
 
-vim.api.nvim_set_hl(0, "CursorLine", { bg = "#3B4252" })
-vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#FFCC00", bold = true })
+vim.api.nvim_set_hl(0, "CursorLine", { bg = "#1E2430", underline = true })
+vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF5F", bold = true })
 
 -- Force-disable any vertical guides/columns set by themes/plugins
 vim.opt.colorcolumn = ""
@@ -16,6 +16,9 @@ vim.api.nvim_set_hl(0, "CursorColumn", { bg = "NONE" })
 vim.api.nvim_create_autocmd({"VimEnter","WinEnter","BufWinEnter"}, {
   callback = function()
     vim.wo.colorcolumn = ""
+    -- Re-apply highlights in case a colorscheme changed them
+    vim.api.nvim_set_hl(0, "CursorLine", { bg = "#1E2430", underline = true })
+    vim.api.nvim_set_hl(0, "CursorLineNr", { fg = "#00FF5F", bold = true })
   end,
 })
 
