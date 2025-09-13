@@ -13,6 +13,9 @@ brew_formulae:
   - minikube
   - ncdu
   - neovim
+  - node
+  - pyvim
+  - ripgrep
   - sha3sum
   - wakeonlan
   - watch
