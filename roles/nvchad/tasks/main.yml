@@ -37,9 +37,9 @@
 
 - name: Clone NVChad (if not present)
   ansible.builtin.git:
-    repo: https://github.com/NvChad/NvChad
+    repo: https://github.com/NvChad/starter
     dest: "{{ ansible_env.HOME }}/.config/nvim"
-    version: v2.5
+    version: main
     update: yes
     force: yes
     depth: 1
