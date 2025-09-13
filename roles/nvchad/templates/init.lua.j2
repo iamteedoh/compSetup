@@ -13,6 +13,17 @@ opt.spell = true
 opt.spelllang = "en_us"
 opt.completeopt = "menu,menuone,noselect"
 
+-- Enable completion popup in all buffers (including markdown) via nvim-cmp spell + buffer
+vim.api.nvim_create_autocmd({"BufEnter","InsertEnter"}, {
+  callback = function()
+    -- For spell to underline suggestions in markdown/text
+    if vim.bo.filetype == "markdown" or vim.bo.filetype == "text" then
+      vim.opt_local.spell = true
+      vim.opt_local.spelllang = "en_us"
+    end
+  end,
+})
+
 -- Line numbers
 opt.number = true
 opt.relativenumber = false
