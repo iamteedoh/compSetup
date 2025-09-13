@@ -17,6 +17,15 @@ local function apply_cursorline()
       vim.wo.winhighlight = vim.wo.winhighlight .. ",CursorLine:CursorLine"
     end
   end
+  -- Ensure window uses CursorLineNr mapping
+  vim.wo.winhighlight = (vim.wo.winhighlight or ""):gsub("CursorLineNr:[^,]+", "CursorLineNr:CursorLineNr")
+  if not string.find(vim.wo.winhighlight, "CursorLineNr:") then
+    if vim.wo.winhighlight == "" then
+      vim.wo.winhighlight = "CursorLineNr:CursorLineNr"
+    else
+      vim.wo.winhighlight = vim.wo.winhighlight .. ",CursorLineNr:CursorLineNr"
+    end
+  end
 end
 
 -- Force-disable any vertical guides/columns set by themes/plugins
