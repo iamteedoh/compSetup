@@ -4,7 +4,7 @@ local function apply_cursorline()
   vim.opt_local.relativenumber = false
   vim.opt_local.cursorline = true
   vim.opt_local.cursorcolumn = false
-  vim.opt_local.cursorlineopt = "line"
+  vim.opt_local.cursorlineopt = "both"
   -- Dark green, "transparent-like" horizontal line highlight and bright green line number
   vim.api.nvim_set_hl(0, "CursorLine", { bg = "#103E16" })
   -- Define a dedicated group for the current line number to avoid theme remaps
