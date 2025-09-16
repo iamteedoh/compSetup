@@ -76,6 +76,23 @@ return {
     },
   },
 
+  -- Linters and tool installer
+  { "mfussenegger/nvim-lint" },
+  {
+    "WhoIsSethDaniel/mason-tool-installer.nvim",
+    opts = {
+      ensure_installed = {
+        -- common linters/formatters used by nvim-lint or CLIs
+        "shellcheck",   -- sh/bash/zsh
+        "ruff",         -- python
+        "eslint_d",     -- js/ts
+        "yamllint",     -- yaml
+      },
+      auto_update = true,
+      run_on_start = true,
+    },
+  },
+
   -- Apply our basic LSP setups
   {
     "neovim/nvim-lspconfig",
@@ -84,6 +101,14 @@ return {
       pcall(require, "mason").setup
       pcall(require, "mason-lspconfig").setup, {}
       pcall(function() require("custom.lsp") end)
+    end,
+  },
+
+  -- Configure nvim-lint from our custom module
+  {
+    "mfussenegger/nvim-lint",
+    config = function()
+      pcall(function() require("custom.lint") end)
     end,
   },
 }

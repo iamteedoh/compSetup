@@ -105,6 +105,12 @@
     dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/lsp.lua"
     mode: "0644"
 
+- name: Deploy NVChad custom lint setup (lint.lua)
+  ansible.builtin.template:
+    src: lint.lua.j2
+    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/lint.lua"
+    mode: "0644"
+
 - name: Ensure NVChad plugins are installed (Lazy sync)
   ansible.builtin.shell: |
     set -euo pipefail
