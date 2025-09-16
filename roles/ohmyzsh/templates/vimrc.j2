@@ -40,9 +40,12 @@ if exists('*pathogen#infect')
 endif
 
 " syntastic options for shellcheck and vim
-set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
-set statusline+=%*
+" Only add syntastic statusline pieces if syntastic is present
+if exists('*SyntasticStatuslineFlag')
+  set statusline+=%#warningmsg#
+  set statusline+=%{SyntasticStatuslineFlag()}
+  set statusline+=%*
+endif
 
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
@@ -62,6 +65,8 @@ let g:syntastic_check_on_wq = 0
 " will disable auto-checking. You can then check a file by running
 " :SyntasticCheck instead.
 
-silent! nmap <F7> :SyntasticToggleMode<CR>
+if exists(':SyntasticToggleMode')
+  silent! nmap <F7> :SyntasticToggleMode<CR>
+endif
 
 
