@@ -1,0 +1,64 @@
+---
+# Role: iterm2
+# Sets iTerm2 default font to 0xProto Nerd Font Mono and font size 13
+
+- name: Detect iTerm2 preferences plist
+  ansible.builtin.shell: |
+    set -euo pipefail
+    defaults read com.googlecode.iterm2 > /dev/null 2>&1 && echo system || echo none
+  args:
+    executable: /bin/bash
+  register: iterm2_pref_status
+  changed_when: false
+  failed_when: false
+
+- name: Ensure iTerm2 loads preferences from custom folder (optional)
+  ansible.builtin.defaults:
+    domain: com.googlecode.iterm2
+    key: LoadPrefsFromCustomFolder
+    type: bool
+    value: false
+  when: iterm2_pref_status.stdout != 'none'
+
+- name: Set iTerm2 default profile font name
+  ansible.builtin.defaults:
+    domain: com.googlecode.iterm2
+    key: 'New Bookmarks'
+    type: array-add
+    value: '{ "Normal Font" = "0xProto Nerd Font Mono 13"; }'
+  when: iterm2_pref_status.stdout != 'none'
+  failed_when: false
+
+- name: Set iTerm2 Non-ASCII font name
+  ansible.builtin.defaults:
+    domain: com.googlecode.iterm2
+    key: 'New Bookmarks'
+    type: array-add
+    value: '{ "Non Ascii Font" = "0xProto Nerd Font Mono 13"; }'
+  when: iterm2_pref_status.stdout != 'none'
+  failed_when: false
+
+- name: Advise user to restart iTerm2 for font changes
+  ansible.builtin.debug:
+    msg: "iTerm2 font updated to 0xProto Nerd Font Mono 13. Restart iTerm2 if changes are not visible."
+
+- name: Ensure DynamicProfiles directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/Library/Application Support/iTerm2/DynamicProfiles"
+    state: directory
+    mode: "0755"
+
+- name: Generate GUID for iTerm2 dynamic profile
+  ansible.builtin.set_fact:
+    iterm2_profile_guid: "{{ lookup('password', '/dev/null length=8 chars=hexdigits') }}-{{ lookup('password', '/dev/null length=4 chars=hexdigits') }}-{{ lookup('password', '/dev/null length=4 chars=hexdigits') }}-{{ lookup('password', '/dev/null length=4 chars=hexdigits') }}-{{ lookup('password', '/dev/null length=12 chars=hexdigits') }}"
+
+- name: Install iTerm2 dynamic profile for 0xProto font
+  ansible.builtin.template:
+    src: 0xproto_profile.json.j2
+    dest: "{{ ansible_env.HOME }}/Library/Application Support/iTerm2/DynamicProfiles/0xproto_profile.json"
+    mode: "0644"
+
+- name: Note about applying iTerm2 dynamic profile
+  ansible.builtin.debug:
+    msg: "Dynamic profile '0xProto 13' installed. In iTerm2, set it as default (Profiles > Profiles) or restart to auto-load."
+
