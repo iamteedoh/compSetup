@@ -64,7 +64,17 @@ return {
   -- LSP config + Mason to install language servers automatically
   { "neovim/nvim-lspconfig" },
   { "williamboman/mason.nvim", build = ":MasonUpdate" },
-  { "williamboman/mason-lspconfig.nvim" },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    opts = {
+      ensure_installed = {
+        -- Code completion/lint servers to auto-install
+        "lua_ls", "pyright", "bashls", "tsserver", "gopls",
+        "rust_analyzer", "jsonls", "yamlls", "html", "cssls",
+      },
+      automatic_installation = true,
+    },
+  },
 
   -- Apply our basic LSP setups
   {
