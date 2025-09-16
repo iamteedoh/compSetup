@@ -60,6 +60,22 @@ return {
   { "hrsh7th/cmp-buffer" },
   { "hrsh7th/cmp-path" },
   { "f3fora/cmp-spell" },
+
+  -- LSP config + Mason to install language servers automatically
+  { "neovim/nvim-lspconfig" },
+  { "williamboman/mason.nvim", build = ":MasonUpdate" },
+  { "williamboman/mason-lspconfig.nvim" },
+
+  -- Apply our basic LSP setups
+  {
+    "neovim/nvim-lspconfig",
+    config = function()
+      -- Ensure mason + mason-lspconfig are set up then apply lsp configs
+      pcall(require, "mason").setup
+      pcall(require, "mason-lspconfig").setup, {}
+      pcall(function() require("custom.lsp") end)
+    end,
+  },
 }
 
 

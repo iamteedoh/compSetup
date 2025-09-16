@@ -99,6 +99,12 @@
     dest: "{{ ansible_env.HOME }}/.config/nvim/after/plugin/cursorline.lua"
     mode: "0644"
 
+- name: Deploy NVChad custom lsp setup (lsp.lua)
+  ansible.builtin.template:
+    src: lsp.lua.j2
+    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/lsp.lua"
+    mode: "0644"
+
 - name: Ensure NVChad plugins are installed (Lazy sync)
   ansible.builtin.shell: |
     set -euo pipefail

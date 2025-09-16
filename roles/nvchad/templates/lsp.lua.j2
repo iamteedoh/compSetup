@@ -1,0 +1,22 @@
+-- Basic LSP setups for common languages (enables nvim-cmp code completion)
+local lspconfig = require("lspconfig")
+
+local servers = {
+  "lua_ls",       -- Lua
+  "pyright",      -- Python
+  "tsserver",     -- TypeScript/JavaScript
+  "gopls",        -- Go
+  "rust_analyzer",-- Rust
+  "bashls",       -- Bash
+  "jsonls",       -- JSON
+  "yamlls",       -- YAML
+  "html",         -- HTML
+  "cssls",        -- CSS
+}
+
+-- Use defaults; NvChad wires cmp & capabilities under the hood
+for _, srv in ipairs(servers) do
+  pcall(lspconfig[srv].setup, {})
+end
+
+
