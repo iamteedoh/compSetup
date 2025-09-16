@@ -34,8 +34,10 @@ set t_Co=256
 " yaml syntax highlighting
 " au BufNewFile,BufRead *.yaml,*.yml so ~/.vim/yaml.vim
 
-" pathogen executer
-execute pathogen#infect()
+" pathogen (optional) — only run if available
+if exists('*pathogen#infect')
+  call pathogen#infect()
+endif
 
 " syntastic options for shellcheck and vim
 set statusline+=%#warningmsg#
