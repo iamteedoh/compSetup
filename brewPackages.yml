@@ -2,6 +2,7 @@
 
 brew_formulae:
   - ansible
+  - bitwarden-cli
   - ffmpeg
   - git
   - gnupg
