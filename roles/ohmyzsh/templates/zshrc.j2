@@ -136,6 +136,7 @@ alias sourceme='source ~/.zshrc'
 alias sshconf='~/.ssh/config'
 alias gitb='git --no-pager branch'
 alias gita='git --no-pager branch -a'
+alias bwl="bw list items | jq 'map(del(.login.password))'"
 
 # Aliases for TaskWarrior:
 alias task2daysago='task completed end.after:now-2d'
