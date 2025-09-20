@@ -23,6 +23,7 @@ brew_formulae:
   - wget
 
 brew_casks:
+  - cyberduck
   - docker
   - google-chrome
   - ghostty
