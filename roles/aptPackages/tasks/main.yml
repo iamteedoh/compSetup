@@ -1,4 +1,32 @@
 ---
+- name: Remove Snap Neovim if present
+  become: true
+  ansible.builtin.command: "snap remove --purge nvim"
+  register: snap_remove_nvim
+  changed_when: snap_remove_nvim.rc == 0
+  failed_when: false
+  when:
+    - ansible_system == 'Linux'
+    - ('/snap/bin' in ansible_env.PATH)
+
+- name: Add Neovim PPA on Ubuntu/Pop!_OS
+  become: true
+  ansible.builtin.apt_repository:
+    repo: ppa:neovim-ppa/unstable
+    state: present
+  register: neovim_ppa_repo
+  when:
+    - ansible_system == 'Linux'
+    - (detected_distribution | default(ansible_distribution | lower | regex_replace('[^a-z0-9_]+', '_'))) in ['ubuntu', 'pop_os']
+
+- name: Update apt cache if Neovim PPA changed
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+  when:
+    - neovim_ppa_repo is defined
+    - neovim_ppa_repo.changed
+
 - name: Normalize apt package list
   set_fact:
     apt_packages_resolved: "{{ apt_packages_resolved | default([]) | unique }}"
@@ -52,35 +80,27 @@
     linux_fonts: >-
       {{ package_manifest.fonts | selectattr('linux', 'defined') | list }}
   block:
-    - name: Create font directories
-      ansible.builtin.file:
-        path: "{{ item.linux.dest | default('~/.local/share/fonts') | expanduser }}"
-        state: directory
-        mode: "0755"
+    - name: Initialize font cache refresh flag
+      ansible.builtin.set_fact:
+        font_cache_refresh_required: false
+
+    - name: Process Nerd Fonts
+      ansible.builtin.include_tasks: install_font.yml
       loop: "{{ linux_fonts }}"
       loop_control:
-        label: "{{ item.name }}"
+        loop_var: font_item
+        label: "{{ font_item.name }}"
 
-    - name: Download Nerd Font archives
-      ansible.builtin.get_url:
-        url: "{{ item.linux.url }}"
-        dest: "/tmp/{{ item.name }}.zip"
-        mode: "0644"
-      loop: "{{ linux_fonts }}"
-      loop_control:
-        label: "{{ item.name }}"
-
-    - name: Unpack Nerd Font archives
-      ansible.builtin.unarchive:
-        src: "/tmp/{{ item.name }}.zip"
-        dest: "{{ item.linux.dest | default('~/.local/share/fonts') | expanduser }}"
-        remote_src: true
-        mode: "0644"
-      loop: "{{ linux_fonts }}"
-      loop_control:
-        label: "{{ item.name }}"
-
-    - name: Rebuild font cache
+    - name: Rebuild font cache if fonts changed
       ansible.builtin.command: fc-cache -f
+      when: font_cache_refresh_required | default(false)
       changed_when: true
+
+- name: Upgrade Neovim to latest available version
+  become: true
+  ansible.builtin.apt:
+    name: neovim
+    state: latest
+  when:
+    - ansible_system == 'Linux'
 

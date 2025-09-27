@@ -1,0 +1,38 @@
+- name: Determine font destination path
+  ansible.builtin.set_fact:
+    current_font_dest: "{{ font_item.linux.dest | default('~/.local/share/fonts') | expanduser }}"
+
+- name: Ensure font directory exists
+  ansible.builtin.file:
+    path: "{{ current_font_dest }}"
+    state: directory
+    mode: "0755"
+
+- name: Check for existing font files
+  ansible.builtin.find:
+    paths: "{{ current_font_dest }}"
+    patterns: "{{ font_item.linux.pattern | default(font_item.name ~ '*.ttf') }}"
+    file_type: file
+  register: current_font_find
+
+- name: Download Nerd Font archive when missing
+  ansible.builtin.get_url:
+    url: "{{ font_item.linux.url }}"
+    dest: "/tmp/{{ font_item.name }}.zip"
+    mode: "0644"
+  when: current_font_find.matched | default(0) == 0
+
+- name: Unpack Nerd Font archive when missing
+  ansible.builtin.unarchive:
+    src: "/tmp/{{ font_item.name }}.zip"
+    dest: "{{ current_font_dest }}"
+    remote_src: true
+    mode: "0644"
+  register: current_font_unarchive
+  when: current_font_find.matched | default(0) == 0
+
+- name: Flag font cache refresh
+  ansible.builtin.set_fact:
+    font_cache_refresh_required: true
+  when: current_font_unarchive is defined and current_font_unarchive.changed | default(false)
+

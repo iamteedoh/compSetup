@@ -54,6 +54,16 @@
     depth: 1
   when: not nvim_git.stat.exists or not nvim_init.stat.exists
 
+- name: Ensure vim.uv compatibility alias for older Neovim
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_env.HOME }}/.config/nvim/init.lua"
+    insertbefore: '^local lazypath'
+    marker: "-- {mark} compat"
+    block: |
+      if vim.uv == nil and vim.loop ~= nil then
+        vim.uv = vim.loop
+      end
+
 - name: Ensure NVChad custom config directory exists
   ansible.builtin.file:
     path: "{{ ansible_env.HOME }}/.config/nvim/lua/custom"

@@ -14,8 +14,8 @@
   pre_tasks:
     - name: Derive platform identifiers
       set_fact:
-        detected_os_family: "{{ ansible_facts['os_family'] | lower | regex_replace('[^a-z0-9_]+','_') }}"
-        detected_distribution: "{{ ansible_facts['distribution'] | lower | regex_replace('[^a-z0-9_]+','_') }}"
+        detected_os_family: "{{ ansible_facts['os_family'] | lower | regex_replace('[^a-z0-9_]+','_') | regex_replace('_+','_') }}"
+        detected_distribution: "{{ ansible_facts['distribution'] | lower | regex_replace('[^a-z0-9_]+','_') | regex_replace('_+','_') }}"
         desktop_identifiers: >-
           {{ [
               ansible_env['DESKTOP_SESSION'] | default(''),
@@ -23,6 +23,7 @@
             ]
             | map('lower')
             | map('regex_replace', '[^a-z0-9_]+', '_')
+            | map('regex_replace', '_+', '_')
             | reject('equalto', '')
             | list
             | unique }}
