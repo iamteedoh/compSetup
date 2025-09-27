@@ -159,10 +159,10 @@ if [[ -f "$PLAYBOOK" ]]; then
   else
     VSCODE_FLAG=false
   fi
-  VARS_FILE=$(mktemp -t ansible-vars.XXXXXX)
+VARS_FILE=$(mktemp -t ansible-vars.XXXXXX)
   chmod 600 "$VARS_FILE"
-  printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s"}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" > "$VARS_FILE"
-  log_and_run "ansible-playbook $PLAYBOOK --extra-vars @\"$VARS_FILE\""
+printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s"}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" > "$VARS_FILE"
+log_and_run "ansible-playbook $PLAYBOOK --extra-vars @\"$VARS_FILE\""
   rm -f "$VARS_FILE" 2>/dev/null || true
   echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"
 else

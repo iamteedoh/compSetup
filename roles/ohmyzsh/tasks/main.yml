@@ -1,4 +1,20 @@
 ---
+# Ensure zsh is available before proceeding
+- name: Ensure zsh is installed on macOS
+  ansible.builtin.command: brew install zsh
+  register: brew_install_zsh
+  changed_when: "'Installing' in (brew_install_zsh.stdout | default('')) or brew_install_zsh.rc == 0"
+  failed_when: false
+  when: ansible_system == 'Darwin'
+
+- name: Ensure zsh is installed on Linux
+  become: true
+  ansible.builtin.apt:
+    name: zsh
+    state: present
+    update_cache: true
+  when: ansible_system == 'Linux'
+
 # tasks file for installOhMyZSH
 
 - name: Check if oh-my-zsh is already installed
@@ -7,7 +23,12 @@
   register: ohmyzsh_dir
 
 - name: Install oh-my-zsh if not present
-  shell: curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | RUNZSH=no sh
+  shell: >-
+    {% if ansible_system == 'Darwin' %}
+    curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | RUNZSH=no sh
+    {% else %}
+    RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    {% endif %}
   args:
     creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
   when: not ohmyzsh_dir.stat.exists

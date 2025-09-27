@@ -1,16 +1,100 @@
 # site.yml
 
-- name: Conigure macOS with Homebrew and VS Code packages
+- name: Configure workstation based on operating system
   hosts: localhost
   connection: local
   gather_facts: true
   
   vars_files:
-    - brewPackages.yml
+    - packages.yml
+
+  vars:
+    is_linux: ansible_system == 'Linux'
+
+  pre_tasks:
+    - name: Derive platform identifiers
+      set_fact:
+        detected_os_family: "{{ ansible_facts['os_family'] | lower | regex_replace('[^a-z0-9_]+','_') }}"
+        detected_distribution: "{{ ansible_facts['distribution'] | lower | regex_replace('[^a-z0-9_]+','_') }}"
+        desktop_identifiers: >-
+          {{ [
+              ansible_env['DESKTOP_SESSION'] | default(''),
+              ansible_env['XDG_CURRENT_DESKTOP'] | default('')
+            ]
+            | map('lower')
+            | map('regex_replace', '[^a-z0-9_]+', '_')
+            | reject('equalto', '')
+            | list
+            | unique }}
+
+    - name: Display detected platform details
+      debug:
+        msg: >-
+          OS family={{ detected_os_family }}, distribution={{ detected_distribution }},
+          desktop_identifiers={{ desktop_identifiers | default([]) }}
+
+    - name: Ensure install_vscode_extensions flag is boolean
+      set_fact:
+        install_vscode_extensions: "{{ install_vscode_extensions | default(true) | bool }}"
+
+    - name: Build Homebrew package targets
+      set_fact:
+        brew_taps: "{{ package_manifest.brew_taps | default([]) }}"
+        brew_formulae: >-
+          {{ package_manifest.cli_tools | default([])
+             | selectattr('brew_formula', 'defined')
+             | map(attribute='brew_formula')
+             | list
+             | unique }}
+        brew_casks: >-
+          {{ (
+              package_manifest.gui_apps | default([])
+              | selectattr('brew_cask', 'defined')
+              | map(attribute='brew_cask')
+              | list
+            )
+            + (
+              package_manifest.fonts | default([])
+              | selectattr('brew_cask', 'defined')
+              | map(attribute='brew_cask')
+              | list
+            )
+            | unique }}
+
+    - name: Build apt package targets
+      set_fact:
+        apt_packages_resolved: >-
+          {{ (
+                package_manifest.cli_tools | default([])
+                | selectattr('apt', 'defined')
+                | map(attribute='apt')
+                | list
+            )
+            + (package_manifest.apt_only.common | default([]))
+            + ((package_manifest.apt_only.by_distribution | default({})).get(detected_distribution, []))
+            + (
+                desktop_identifiers | default([])
+                | select('in', package_manifest.apt_only.by_desktop | default({}))
+                | map('extract', package_manifest.apt_only.by_desktop | default({}))
+                | list
+                | sum(start=[])
+              )
+            | unique }}
+
+    - name: Collect VS Code extensions list
+      set_fact:
+        vscode_extensions_list: "{{ package_manifest.vscode_extensions | default([]) }}"
+
   roles:
-    - brewPackages
-    - ohmyzsh 
-    - powerlevel10k
-    - nvchad
-    - iterm2
-    # - anotherRole <- Add more roles here
+    - role: brewPackages
+      when: ansible_system == 'Darwin'
+    - role: aptPackages
+      when: ansible_system == 'Linux'
+    - role: ohmyzsh
+    - role: powerlevel10k
+    - role: nvchad
+      tags: ['nvchad']
+    - role: vscode_extensions
+      when: install_vscode_extensions | bool
+    - role: iterm2
+      when: ansible_system == 'Darwin'

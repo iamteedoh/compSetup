@@ -7,19 +7,6 @@
 # - Safe guards for all debug/audit tasks
 
 #########################################################
-# 0) Load desired package lists from repo root
-#########################################################
-- name: Load brew package lists
-  include_vars:
-    file: "{{ playbook_dir }}/brewPackages.yml"
-
-# Expected keys in brewPackages.yml (all optional):
-# brew_taps:     [homebrew/cask, ...]
-# brew_casks:    [iterm2, docker, ...]
-# brew_formulae: [git, minikube, kubectl, ...]
-# vscode_extensions: [ms-python.python, redhat.vscode-yaml, ...]
-
-#########################################################
 # 1) Common paths, helpers, and sane PATH for interactive shells
 #########################################################
 - name: Define Homebrew paths and helpers
@@ -302,74 +289,8 @@
   failed_when: false
 
 #########################################################
-# 6) VS CODE EXTENSIONS (robust; no undefined vars)
-#########################################################
-- name: Normalize VS Code extensions list
-  set_fact:
-    vscode_extensions: "{{ (vscode_extensions | default([])) | list }}"
-    install_vscode_extensions: "{{ install_vscode_extensions | default(false) | bool }}"
-
-- name: Detect VS Code CLI (stable or insiders)
-  shell: |
-    set -euo pipefail
-    for c in \
-      "code" \
-      "code-insiders" \
-      "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" \
-      "/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin/code"
-    do
-      if command -v "$c" >/dev/null 2>&1; then echo "$c"; exit 0; fi
-      if [ -x "$c" ]; then echo "$c"; exit 0; fi
-    done
-    exit 1
-  register: code_bin
-  changed_when: false
-  failed_when: false
-
-- name: Note when VS Code is not installed or extensions disabled
-  when: code_bin.rc != 0 or not install_vscode_extensions
-  debug:
-    msg: >-
-      VS Code not found or extension install disabled (install_vscode_extensions={{ install_vscode_extensions }}).
-      Skipping VS Code extensions.
-  changed_when: false
-
-- name: Read installed VS Code extensions
-  when:
-    - code_bin.rc == 0
-    - (vscode_extensions | default([])) | length > 0
-    - install_vscode_extensions
-  command: "{{ code_bin.stdout }} --list-extensions"
-  register: code_ext_list
-  changed_when: false
-  failed_when: false
-
-- name: Compute missing VS Code extensions
-  when:
-    - code_bin.rc == 0
-    - (vscode_extensions | default([])) | length > 0
-    - install_vscode_extensions
-  set_fact:
-    vscode_ext_missing: >-
-      {{ (vscode_extensions | default([])) | difference(code_ext_list.stdout_lines | default([])) }}
-
-- name: Ensure vscode_ext_missing is defined
-  set_fact:
-    vscode_ext_missing: "{{ vscode_ext_missing | default([]) }}"
-
-- name: Install missing VS Code extensions
-  when:
-    - code_bin.rc == 0
-    - (vscode_ext_missing | default([])) | length > 0
-    - install_vscode_extensions
-  command: "{{ code_bin.stdout }} --install-extension {{ item }} --force"
-  loop: "{{ vscode_ext_missing | default([]) }}"
-  register: code_ext_install
-  changed_when: "'Installing' in (code_ext_install.stdout | default('')) or code_ext_install.rc == 0"
-  failed_when: false
-
-#########################################################
-# 7) Reporting / Debug (safe guards everywhere)
+# 6) Reporting / Debug (safe guards everywhere)
+# (VS Code extension handling moved to dedicated role)
 #########################################################
 - name: Debug failures (ARM formula installs)
   when:

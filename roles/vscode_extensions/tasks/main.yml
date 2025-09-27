@@ -1,0 +1,60 @@
+---
+
+- name: Detect VS Code CLI
+  ansible.builtin.shell: |
+    set -euo pipefail
+    for c in \
+      "code" \
+      "code-insiders" \
+      "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" \
+      "/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin/code"; do
+      if command -v "$c" >/dev/null 2>&1; then
+        printf '%s' "$c"
+        exit 0
+      fi
+      if [ -x "$c" ]; then
+        printf '%s' "$c"
+        exit 0
+      fi
+    done
+    exit 1
+  args:
+    executable: /bin/bash
+  register: vscode_cli_check
+  changed_when: false
+  failed_when: false
+
+- name: Note when VS Code CLI is not available
+  when: vscode_cli_check.rc != 0
+  ansible.builtin.debug:
+    msg: "VS Code CLI not found; skipping extension installation."
+  changed_when: false
+
+- name: Read installed VS Code extensions
+  when:
+    - vscode_cli_check.rc == 0
+    - (vscode_extensions_list | default([])) | length > 0
+  ansible.builtin.command: "{{ vscode_cli_check.stdout }} --list-extensions"
+  register: code_ext_list
+  changed_when: false
+  failed_when: false
+
+- name: Compute missing VS Code extensions
+  when:
+    - vscode_cli_check.rc == 0
+    - (vscode_extensions_list | default([])) | length > 0
+  ansible.builtin.set_fact:
+    vscode_ext_missing: >-
+      {{ (vscode_extensions_list | default([])) | difference(code_ext_list.stdout_lines | default([])) }}
+
+- name: Install missing VS Code extensions
+  when:
+    - vscode_cli_check.rc == 0
+    - (vscode_ext_missing | default([])) | length > 0
+  ansible.builtin.command: "{{ vscode_cli_check.stdout }} --install-extension {{ item }} --force"
+  loop: "{{ vscode_ext_missing | default([]) }}"
+  register: code_ext_install
+  changed_when: "'Installing' in (code_ext_install.stdout | default('')) or code_ext_install.rc == 0"
+  failed_when: false
+
+

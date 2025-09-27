@@ -1,6 +1,6 @@
-# macOS Computer Setup (Ansible + Homebrew)
+# Cross-Platform Computer Setup (macOS + Ubuntu/Pop!_OS)
 
-Automate opinionated macOS setup with Ansible. This project provisions Homebrew packages (formulae and casks), optional VS Code extensions, Oh My Zsh, the Powerlevel10k prompt, and the fonts required for beautiful glyphs. It is idempotent and optimized for Apple Silicon (with graceful Intel fallbacks where needed).
+Automate opinionated workstation setup with Ansible. This project provisions platform-appropriate package managers (Homebrew on macOS, apt on Ubuntu/Pop!_OS), optional VS Code extensions, Oh My Zsh, the Powerlevel10k prompt, and the fonts required for beautiful glyphs. It is idempotent and optimized for Apple Silicon (with graceful Intel fallbacks where needed) and Ubuntu/Pop!_OS (including Cosmic desktop specific tooling).
 
 ## What this does
 
@@ -8,7 +8,7 @@ Automate opinionated macOS setup with Ansible. This project provisions Homebrew 
   - Detects Apple Silicon vs Intel and uses the correct `brew` prefix
   - Installs taps, casks, and formulae
   - Idempotent cask installs (skips already-installed casks)
-  - Installs VS Code extensions (optional)
+  - Installs VS Code extensions where VS Code CLI is available
   - Falls back to Intel Homebrew with Rosetta only when ARM install fails
 - Shell customization
   - Installs Oh My Zsh only if missing
@@ -30,6 +30,8 @@ Automate opinionated macOS setup with Ansible. This project provisions Homebrew 
 
 ## Prerequisites (first run)
 
+### macOS
+
 You need Homebrew and Git to clone this repo. Use this one-liner (Apple Silicon and Intel supported):
 
 ```bash
@@ -39,34 +41,48 @@ brew install git; \
 cd "$HOME"; \
 git clone <REPO_URL> "$HOME/git/personal/compSetup"; \
 cd "$HOME/git/personal/compSetup"; \
-./macOSBootstrap.sh
+./bootstrap.sh
+```
+
+### Ubuntu / Pop!_OS (Cosmic)
+
+Ensure you have git, curl, and sudo privileges available (the bootstrap will install other dependencies automatically).
+
+```bash
+sudo apt update
+sudo apt install -y git curl
+git clone <REPO_URL> "$HOME/git/personal/compSetup"
+cd "$HOME/git/personal/compSetup"
+./bootstrap.sh
 ```
 
 - Replace `<REPO_URL>` with your repository URL.
-- The script will prompt for your macOS password once and won’t prompt again during the run.
+- The script will prompt for your password as needed by `sudo`.
 
 ## Usage
 
 - Run the bootstrap script from the repo root:
 
 ```bash
-./macOSBootstrap.sh
+./bootstrap.sh
 ```
 
 - The script:
-  - Validates and caches sudo
-  - Installs/repairs Homebrew if necessary
-  - Ensures Rosetta 2 on Apple Silicon (only if needed)
-  - Installs Ansible and required collections
-  - Detects whether VS Code is installed to decide on extension install
+  - Detects the host operating system (macOS or Linux)
+  - Validates and caches sudo (macOS)
+  - Installs platform dependencies (Homebrew on macOS, apt packages on Ubuntu/Pop!_OS)
+  - Installs Ansible, required collections, and VS Code extensions when applicable
   - Executes `ansible-playbook site.yml`
 
 ## Options and configuration
 
-- Homebrew packages: edit `brewPackages.yml` in the repo root
-  - Keys (all optional): `brew_taps`, `brew_casks`, `brew_formulae`, `vscode_extensions`
-- VS Code extensions:
-  - The bootstrap auto-detects VS Code and sets `install_vscode_extensions=true|false`
+- Package manifest: edit `packages.yml`
+  - `brew_taps`: Homebrew taps to enable
+  - `cli_tools`: shared CLI tools with `brew_formula` and/or `apt`
+  - `gui_apps`: Homebrew casks (optionally map to other managers)
+  - `fonts`: Nerd fonts installed via Homebrew casks
+  - `apt_only`: apt-specific packages (common/by distribution/by desktop)
+  - `vscode_extensions`: extensions installed when the VS Code CLI is present
 - Role variables (Powerlevel10k)
   - `p10k_install_ohmyzsh_if_missing` (default: true)
   - `p10k_script_dest` (default: arch-aware Homebrew bin path)
@@ -84,7 +100,18 @@ cd "$HOME/git/personal/compSetup"; \
 
 ```mermaid
 flowchart TD
-  A[Start ./macOSBootstrap.sh] --> B[Prompt once for sudo<br/>cache credentials]
+  A[Start ./bootstrap.sh] --> B{macOS?}
+  B -- Yes --> C1[Prompt once for sudo<br/>cache credentials]
+  C1 --> D1[Install/repair Homebrew]
+  D1 --> E1[Apple Silicon?]
+  E1 -- Yes --> F1[Ensure Rosetta 2]
+  E1 -- No --> G1[Skip Rosetta]
+  F1 --> H1[Install macOS prerequisites]
+  G1 --> H1
+  B -- No --> C2[Install apt prerequisites]
+  C2 --> H2[Install apt packages]
+  H1 --> I[Install Ansible + collections]
+  H2 --> I
   B --> C[Install Homebrew if missing<br/>setup shellenv]
   C --> D[Homebrew health check<br/>update/upgrade if needed]
   D --> E{Apple Silicon?}

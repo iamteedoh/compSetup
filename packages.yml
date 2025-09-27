@@ -1,0 +1,133 @@
+# packages.yml
+
+package_manifest:
+  brew_taps:
+    - homebrew/cask-fonts
+
+  cli_tools:
+    - name: ansible
+      brew_formula: ansible
+      apt: ansible
+    - name: bitwarden-cli
+      brew_formula: bitwarden-cli
+    - name: ffmpeg
+      brew_formula: ffmpeg
+      apt: ffmpeg
+    - name: git
+      brew_formula: git
+      apt: git
+    - name: gnupg
+      brew_formula: gnupg
+      apt: gnupg
+    - name: gotop
+      brew_formula: gotop
+    - name: graphviz
+      brew_formula: graphviz
+      apt: graphviz
+    - name: helm
+      brew_formula: helm
+    - name: htop
+      brew_formula: htop
+      apt: htop
+    - name: locateme
+      brew_formula: locateme
+    - name: minikube
+      brew_formula: minikube
+    - name: ncdu
+      brew_formula: ncdu
+      apt: ncdu
+    - name: neovim
+      brew_formula: neovim
+      apt: neovim
+    - name: node
+      brew_formula: node
+      apt: nodejs
+    - name: pyvim
+      brew_formula: pyvim
+      apt: python3-pynvim
+    - name: ripgrep
+      brew_formula: ripgrep
+      apt: ripgrep
+    - name: sha3sum
+      brew_formula: sha3sum
+    - name: wakeonlan
+      brew_formula: wakeonlan
+      apt: wakeonlan
+    - name: wget
+      brew_formula: wget
+      apt: wget
+    - name: curl
+      brew_formula: curl
+      apt: curl
+    - name: fd
+      brew_formula: fd
+      apt: fd-find
+    - name: unzip
+      brew_formula: unzip
+      apt: unzip
+
+  gui_apps:
+    - name: cyberduck
+      brew_cask: cyberduck
+    - name: docker
+      brew_cask: docker
+    - name: google-chrome
+      brew_cask: google-chrome
+    - name: ghostty
+      brew_cask: ghostty
+    - name: handbrake
+      brew_cask: handbrake
+      apt: handbrake
+    - name: qownnotes
+      brew_cask: qownnotes
+      apt: qownnotes
+    - name: typora
+      brew_cask: typora
+    - name: visual-studio-code
+      brew_cask: visual-studio-code
+
+  fonts:
+    - name: font-0xproto-nerd-font
+      brew_cask: font-0xproto-nerd-font
+      linux:
+        url: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/0xProto.zip
+        dest: ~/.local/share/fonts
+    - name: font-fira-code-nerd-font
+      brew_cask: font-fira-code-nerd-font
+      linux:
+        url: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
+        dest: ~/.local/share/fonts
+    - name: font-fira-mono-nerd-font
+      brew_cask: font-fira-mono-nerd-font
+      linux:
+        url: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraMono.zip
+        dest: ~/.local/share/fonts
+
+  vscode_extensions:
+    - github.copilot
+    - github.copilot-chat
+    - golang.go
+    - ms-azuretools.vscode-docker
+    - ms-kubernetes-tools.vscode-kubernetes-tools
+    - ms-python.python
+    - ms-python.vscode-pylance
+    - redhat.ansible
+    - redhat.vscode-yaml
+    - rust-lang.rust-analyzer
+    - vscodevim.vim
+
+  apt_only:
+    common:
+      - build-essential
+      - python3-pip
+      - python3-venv
+      - fontconfig
+    by_distribution:
+      ubuntu:
+        - software-properties-common
+      pop_os:
+        - software-properties-common
+    by_desktop:
+      cosmic:
+        - cosmic-term
+

@@ -1,0 +1,86 @@
+---
+- name: Normalize apt package list
+  set_fact:
+    apt_packages_resolved: "{{ apt_packages_resolved | default([]) | unique }}"
+
+- name: Filter apt packages by repository availability
+  when: apt_packages_resolved | length > 0
+  block:
+    - name: Check apt package availability
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if apt-cache show "{{ item }}" >/dev/null 2>&1; then
+          printf '%s' "{{ item }}"
+        fi
+      args:
+        executable: /bin/bash
+      loop: "{{ apt_packages_resolved }}"
+      register: apt_package_checks
+      changed_when: false
+      failed_when: false
+
+    - name: Gather available apt packages
+      set_fact:
+        apt_packages_available: "{{ apt_package_checks.results
+          | map(attribute='stdout')
+          | reject('equalto', '')
+          | list
+          | unique }}"
+
+    - name: Warn about missing apt packages
+      ansible.builtin.debug:
+        msg: >-
+          Skipping packages not found in APT repositories: {{ apt_packages_resolved | difference(apt_packages_available | default([])) }}
+      when: (apt_packages_resolved | difference(apt_packages_available | default([]))) | length > 0
+      changed_when: false
+
+- name: Install apt packages
+  become: true
+  ansible.builtin.apt:
+    name: "{{ apt_packages_available | default([]) }}"
+    state: present
+    update_cache: true
+  when:
+    - apt_packages_available is defined
+    - apt_packages_available | length > 0
+
+- name: Install Nerd Fonts on Linux
+  when:
+    - ansible_system == 'Linux'
+    - package_manifest.fonts | default([]) | length > 0
+  vars:
+    linux_fonts: >-
+      {{ package_manifest.fonts | selectattr('linux', 'defined') | list }}
+  block:
+    - name: Create font directories
+      ansible.builtin.file:
+        path: "{{ item.linux.dest | default('~/.local/share/fonts') | expanduser }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ linux_fonts }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Download Nerd Font archives
+      ansible.builtin.get_url:
+        url: "{{ item.linux.url }}"
+        dest: "/tmp/{{ item.name }}.zip"
+        mode: "0644"
+      loop: "{{ linux_fonts }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Unpack Nerd Font archives
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ item.name }}.zip"
+        dest: "{{ item.linux.dest | default('~/.local/share/fonts') | expanduser }}"
+        remote_src: true
+        mode: "0644"
+      loop: "{{ linux_fonts }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Rebuild font cache
+      ansible.builtin.command: fc-cache -f
+      changed_when: true
+

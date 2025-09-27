@@ -2,11 +2,20 @@
 # Role: nvchad
 # Installs Neovim (via Homebrew), NVChad, and applies user config overrides.
 
-- name: Ensure Neovim is installed
+- name: Ensure Neovim is installed (macOS)
   ansible.builtin.command: brew install neovim
-  register: nvim_install
-  changed_when: "'Installing' in (nvim_install.stdout | default('')) or nvim_install.rc == 0"
+  register: nvim_install_brew
+  changed_when: "'Installing' in (nvim_install_brew.stdout | default('')) or nvim_install_brew.rc == 0"
   failed_when: false
+  when: ansible_system == 'Darwin'
+
+- name: Ensure Neovim is installed (Linux)
+  become: true
+  ansible.builtin.apt:
+    name: neovim
+    state: present
+    update_cache: true
+  when: ansible_system == 'Linux'
 
 - name: Gather $HOME
   ansible.builtin.setup:
@@ -118,7 +127,7 @@
   args:
     executable: /bin/bash
   environment:
-    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:{{ ansible_env.PATH }}"
+    PATH: "{{ (ansible_system == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_env.PATH }}"
   changed_when: false
   failed_when: false
 
@@ -131,7 +140,7 @@
   args:
     executable: /bin/bash
   environment:
-    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:{{ ansible_env.PATH }}"
+    PATH: "{{ (ansible_system == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_env.PATH }}"
   changed_when: false
   failed_when: false
 
@@ -142,7 +151,7 @@
   args:
     executable: /bin/bash
   environment:
-    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:{{ ansible_env.PATH }}"
+    PATH: "{{ (ansible_system == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_env.PATH }}"
   changed_when: false
   failed_when: false
 
@@ -153,7 +162,7 @@
   args:
     executable: /bin/bash
   environment:
-    PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:{{ ansible_env.PATH }}"
+    PATH: "{{ (ansible_system == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_env.PATH }}"
   changed_when: false
   failed_when: false
 
