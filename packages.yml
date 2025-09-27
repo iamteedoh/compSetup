@@ -69,6 +69,12 @@ package_manifest:
   gui_apps:
     - name: cyberduck
       brew_cask: cyberduck
+    - name: visual-studio-code
+      brew_cask: visual-studio-code
+      linux:
+        type: deb
+        url: https://update.code.visualstudio.com/latest/linux-deb-x64/stable
+        installed_path: /usr/share/code/code
     - name: docker
       brew_cask: docker
     - name: google-chrome
