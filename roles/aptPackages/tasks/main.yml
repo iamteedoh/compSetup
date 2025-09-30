@@ -122,6 +122,71 @@
         remote: flathub
         method: system
 
+- name: Install Linux CLI extras
+  when:
+    - ansible_system == 'Linux'
+  block:
+    - name: Collect gem-based CLI tools
+      set_fact:
+        linux_gem_tools: >-
+          {{ package_manifest.cli_tools | default([])
+             | selectattr('linux', 'defined')
+             | selectattr('linux.type', 'defined')
+             | selectattr('linux.type', 'equalto', 'gem')
+             | list }}
+
+    - name: Install CLI tool via gem
+      become: true
+      community.general.gem:
+        name: "{{ item.linux.package }}"
+        state: present
+      loop: "{{ linux_gem_tools }}"
+      loop_control:
+        label: "{{ item.linux.package }}"
+      when: linux_gem_tools | length > 0
+
+    - name: Determine gem executable directory
+      command: ruby -e 'require "rubygems"; print Gem.bindir'
+      register: gem_bindir
+      changed_when: false
+      when: linux_gem_tools | length > 0
+
+    - name: Stat gem binaries
+      ansible.builtin.stat:
+        path: "{{ gem_bindir.stdout }}/{{ item.linux.package }}"
+      loop: "{{ linux_gem_tools }}"
+      loop_control:
+        label: "{{ item.linux.package }}"
+      register: gem_binary_stats
+      when:
+        - linux_gem_tools | length > 0
+        - gem_bindir.stdout is defined
+        - gem_bindir.stdout != ''
+
+    - name: Ensure gem binaries are on PATH
+      become: true
+      ansible.builtin.file:
+        src: "{{ item.stat.path }}"
+        dest: "/usr/local/bin/{{ item.item.linux.package }}"
+        state: link
+        force: true
+      loop: "{{ gem_binary_stats.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.linux.package }}"
+      when:
+        - item.stat.exists | default(false)
+        - item.stat.isreg | default(false)
+
+    - name: Ensure PATH includes gem bindir
+      ansible.builtin.blockinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        marker: "# {mark} gem path"
+        block: |
+          export PATH={{ gem_bindir.stdout | default('/usr/local/bin') }}:$PATH
+      when:
+        - gem_bindir.stdout is defined
+        - gem_bindir.stdout != ''
+
 - name: Upgrade Neovim to latest available version
   become: true
   ansible.builtin.apt:

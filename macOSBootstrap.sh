@@ -42,10 +42,9 @@ log_and_run() {
   echo -e "${YELLOW}-> $*${NC}" | tee -a "$LOGFILE"
   # Disabling 'e' temporarily for commands that might fail but we want to continue
   set +e
-  bash -c "$*" >> "$LOGFILE" 2>&1
-  local exit_code=$?
+  bash -c "$*" 2>&1 | tee -a "$LOGFILE"
+  local exit_code=${PIPESTATUS[0]}
   set -e
-  # Return the original exit code
   return $exit_code
 }
 
@@ -53,8 +52,8 @@ log_and_run() {
 run_silent() {
   # Disabling 'e' temporarily for commands that might fail but we want to continue
   set +e
-  bash -c "$*" >> "$LOGFILE" 2>&1
-  local exit_code=$?
+  bash -c "$*" 2>&1 | tee -a "$LOGFILE" > /dev/null
+  local exit_code=${PIPESTATUS[0]}
   set -e
   return $exit_code
 }

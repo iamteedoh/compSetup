@@ -65,6 +65,20 @@ package_manifest:
     - name: unzip
       brew_formula: unzip
       apt: unzip
+    - name: python3
+      brew_formula: python@3.12
+      apt: python3
+    - name: ruby
+      brew_formula: ruby
+      apt: ruby-full
+    - name: colorls
+      brew_formula: colorls
+      linux:
+        type: gem
+        package: colorls
+    - name: watch
+      brew_formula: watch
+      apt: procps
 
   gui_apps:
     - name: cyberduck

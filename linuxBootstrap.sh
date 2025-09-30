@@ -14,6 +14,23 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 echo -e "${YELLOW}[$TIMESTAMP] Starting Linux bootstrap script...${NC}" | tee "$LOGFILE"
 
+log_and_run() {
+  echo -e "${YELLOW}-> $*${NC}" | tee -a "$LOGFILE"
+  if [ -t 1 ]; then
+    script -qefc "$*" /dev/null | tee -a "$LOGFILE"
+  else
+    bash -c "$*" 2>&1 | tee -a "$LOGFILE"
+  fi
+}
+
+run_silent() {
+  set +e
+  bash -c "$*" 2>&1 | tee -a "$LOGFILE" > /dev/null
+  local exit_code=${PIPESTATUS[0]}
+  set -e
+  return $exit_code
+}
+
 if [ -t 0 ]; then
   echo -ne "${YELLOW}Enter your sudo password (used for bootstrap and Ansible): ${NC}"
   stty -echo
@@ -37,13 +54,18 @@ ensure_package() {
   local pkg="$1"
   if ! dpkg -s "$pkg" >/dev/null 2>&1; then
     echo -e "${YELLOW}Installing package: ${pkg}${NC}" | tee -a "$LOGFILE"
-    printf "%s\n" "$SUDO_PASS" | sudo -S apt-get install -y "$pkg" >> "$LOGFILE" 2>&1
+    printf "%s\n" "$SUDO_PASS" | sudo -S apt-get install -y "$pkg" 2>&1 | tee -a "$LOGFILE"
   fi
 }
 
 echo -e "${YELLOW}Refreshing apt cache...${NC}" | tee -a "$LOGFILE"
-printf "%s\n" "$SUDO_PASS" | sudo -S apt-get update >> "$LOGFILE" 2>&1
+printf "%s\n" "$SUDO_PASS" | sudo -S apt-get update 2>&1 | tee -a "$LOGFILE"
 
+autmsg() {
+  :
+}
+
+autmsg "Ensuring base packages"
 ensure_package git
 ensure_package curl
 ensure_package python3
@@ -51,7 +73,7 @@ ensure_package python3-venv
 ensure_package python3-pip
 ensure_package ansible
 
-printf "%s" "${SUDO_PASS}" | ansible-galaxy collection install community.general >> "$LOGFILE" 2>&1
+printf "%s" "${SUDO_PASS}" | ansible-galaxy collection install community.general 2>&1 | tee -a "$LOGFILE"
 
 VARS_FILE=$(mktemp)
 chmod 600 "$VARS_FILE"
@@ -61,7 +83,7 @@ cat <<EOF > "$VARS_FILE"
 }
 EOF
 
-printf "%s\n" "$SUDO_PASS" | ansible-playbook "$PLAYBOOK" --extra-vars @"$VARS_FILE" >> "$LOGFILE" 2>&1
+printf "%s\n" "$SUDO_PASS" | ansible-playbook "$PLAYBOOK" --extra-vars @"$VARS_FILE" 2>&1 | tee -a "$LOGFILE"
 rm -f "$VARS_FILE"
 
 kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
