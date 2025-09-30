@@ -71,11 +71,9 @@ package_manifest:
     - name: ruby
       brew_formula: ruby
       apt: ruby-full
-    - name: colorls
-      brew_formula: colorls
-      linux:
-        type: gem
-        package: colorls
+    - name: lsd
+      brew_formula: lsd
+      apt: lsd
     - name: watch
       brew_formula: watch
       apt: procps

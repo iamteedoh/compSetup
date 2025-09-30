@@ -167,7 +167,7 @@
       become: true
       ansible.builtin.file:
         src: "{{ item.stat.path }}"
-        dest: "/usr/local/bin/{{ item.item.linux.package }}"
+        dest: "/usr/local/bin/{{ item.item.linux.executable | default(item.item.linux.package) }}"
         state: link
         force: true
       loop: "{{ gem_binary_stats.results | default([]) }}"

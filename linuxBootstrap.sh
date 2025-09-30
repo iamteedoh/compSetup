@@ -15,17 +15,30 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 echo -e "${YELLOW}[$TIMESTAMP] Starting Linux bootstrap script...${NC}" | tee "$LOGFILE"
 
 log_and_run() {
-  echo -e "${YELLOW}-> $*${NC}" | tee -a "$LOGFILE"
-  if [ -t 1 ]; then
-    script -qefc "$*" /dev/null | tee -a "$LOGFILE"
+  local cmd_display=("$@")
+  echo -e "${YELLOW}-> ${cmd_display[*]}${NC}" | tee -a "$LOGFILE"
+  local exit_code
+  if command -v script >/dev/null 2>&1; then
+    local cmd_string
+    printf -v cmd_string '%q ' "$@"
+    set +e
+    script -qefc "$cmd_string" /dev/null | tee -a "$LOGFILE"
+    exit_code=${PIPESTATUS[0]}
+    set -e
   else
-    bash -c "$*" 2>&1 | tee -a "$LOGFILE"
+    set +e
+    "$@" 2>&1 | tee -a "$LOGFILE"
+    exit_code=${PIPESTATUS[0]}
+    set -e
   fi
+  return $exit_code
 }
 
-run_silent() {
+sudo_log_and_run() {
+  local cmd_display=("sudo" "$@")
+  echo -e "${YELLOW}-> ${cmd_display[*]}${NC}" | tee -a "$LOGFILE"
   set +e
-  bash -c "$*" 2>&1 | tee -a "$LOGFILE" > /dev/null
+  { printf "%s\n" "$SUDO_PASS" | sudo -S "$@"; } 2>&1 | tee -a "$LOGFILE"
   local exit_code=${PIPESTATUS[0]}
   set -e
   return $exit_code
@@ -53,19 +66,13 @@ trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
 ensure_package() {
   local pkg="$1"
   if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-    echo -e "${YELLOW}Installing package: ${pkg}${NC}" | tee -a "$LOGFILE"
-    printf "%s\n" "$SUDO_PASS" | sudo -S apt-get install -y "$pkg" 2>&1 | tee -a "$LOGFILE"
+    sudo_log_and_run apt-get install -y "$pkg"
   fi
 }
 
 echo -e "${YELLOW}Refreshing apt cache...${NC}" | tee -a "$LOGFILE"
-printf "%s\n" "$SUDO_PASS" | sudo -S apt-get update 2>&1 | tee -a "$LOGFILE"
+sudo_log_and_run apt-get update
 
-autmsg() {
-  :
-}
-
-autmsg "Ensuring base packages"
 ensure_package git
 ensure_package curl
 ensure_package python3
@@ -73,7 +80,7 @@ ensure_package python3-venv
 ensure_package python3-pip
 ensure_package ansible
 
-printf "%s" "${SUDO_PASS}" | ansible-galaxy collection install community.general 2>&1 | tee -a "$LOGFILE"
+log_and_run ansible-galaxy collection install community.general
 
 VARS_FILE=$(mktemp)
 chmod 600 "$VARS_FILE"
@@ -83,11 +90,21 @@ cat <<EOF > "$VARS_FILE"
 }
 EOF
 
-printf "%s\n" "$SUDO_PASS" | ansible-playbook "$PLAYBOOK" --extra-vars @"$VARS_FILE" 2>&1 | tee -a "$LOGFILE"
+if ! log_and_run env ANSIBLE_FORCE_COLOR=1 ansible-playbook "$PLAYBOOK" --extra-vars @"$VARS_FILE"; then
+  ansible_exit=$?
+else
+  ansible_exit=0
+fi
+
 rm -f "$VARS_FILE"
 
 kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
 unset SUDO_PASS
+
+if [ $ansible_exit -ne 0 ]; then
+  echo -e "${RED}Playbook failed. See $LOGFILE for details.${NC}" | tee -a "$LOGFILE"
+  exit $ansible_exit
+fi
 
 echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"
 
