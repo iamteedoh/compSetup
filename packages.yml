@@ -75,6 +75,10 @@ package_manifest:
         type: deb
         url: https://update.code.visualstudio.com/latest/linux-deb-x64/stable
         installed_path: /usr/share/code/code
+    - name: proton-pass
+      brew_cask: proton-pass
+    - name: proton-mail
+      brew_cask: proton-mail
     - name: docker
       brew_cask: docker
     - name: google-chrome
@@ -127,6 +131,8 @@ package_manifest:
       - build-essential
       - python3-pip
       - python3-venv
+      - flatpak
+      - gnome-software-plugin-flatpak
       - fontconfig
     by_distribution:
       ubuntu:
@@ -137,3 +143,27 @@ package_manifest:
       cosmic:
         - cosmic-term
 
+  flatpak_apps:
+    - com.brave.Browser
+    - com.discordapp.Discord
+    - com.google.Chrome
+    - com.slack.Slack
+    - com.vixalien.sticky
+    - im.riot.Riot
+    - io.github.pwr_solaar.solaar
+    - md.obsidian.Obsidian
+    - me.proton.Pass
+    - net.cozic.joplin_desktop
+    - network.loki.Session
+    - org.raspberrypi.rpi-imager
+    - org.signal.Signal
+    - org.standardnotes.standardnotes
+    - org.videolan.VLC
+    - com.obsproject.Studio
+    - io.podman_desktop.PodmanDesktop
+    - org.kde.kasts
+    - org.kde.kmymoney
+    - org.gimp.GIMP
+    - org.jupyter.JupyterLab
+    - com.vscodium.codium
+    - org.localsend.localsend_app

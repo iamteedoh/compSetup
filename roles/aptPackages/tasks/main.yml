@@ -97,59 +97,30 @@
       changed_when: true
 
 - name: Install Linux GUI applications
-  when:
-    - ansible_system == 'Linux'
-    - package_manifest.gui_apps | default([]) | selectattr('linux', 'defined') | list | length > 0
+  ansible.builtin.include_tasks: install_gui_app.yml
+  loop: "{{ package_manifest.gui_apps | default([]) | selectattr('linux', 'defined') | list }}"
+  loop_control:
+    loop_var: gui_app
+    label: "{{ gui_app.name }}"
+
+- name: Configure Flatpak (if required)
+  when: ansible_system == 'Linux'
   block:
-    - name: Install GUI app via apt package manager
+    - name: Add Flatpak Flathub remote
       become: true
-      ansible.builtin.apt:
-        name: "{{ item.linux.package }}"
+      community.general.flatpak_remote:
+        name: flathub
         state: present
-        update_cache: true
-      when:
-        - item.linux.package is defined
-      loop: "{{ package_manifest.gui_apps | default([]) | selectattr('linux', 'defined') | list }}"
-      loop_control:
-        label: "{{ item.name }}"
-      register: gui_apt_installs
+        flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+        method: system
 
-    - name: Download GUI app deb packages
-      ansible.builtin.get_url:
-        url: "{{ item.linux.url }}"
-        dest: "/tmp/{{ item.name }}.deb"
-        mode: "0644"
-      when:
-        - item.linux.type | default('') == 'deb'
-      loop: "{{ package_manifest.gui_apps | default([]) | selectattr('linux', 'defined') | list }}"
-      loop_control:
-        label: "{{ item.name }}"
-
-    - name: Install GUI app deb packages
+    - name: Install Flatpak applications
       become: true
-      ansible.builtin.command: "dpkg -i /tmp/{{ item.name }}.deb"
-      args:
-        creates: "{{ item.linux.installed_path | default('/usr/share/applications') }}"
-      register: gui_deb_install
-      failed_when: gui_deb_install.rc not in [0]
-      when:
-        - item.linux.type | default('') == 'deb'
-      loop: "{{ package_manifest.gui_apps | default([]) | selectattr('linux', 'defined') | list }}"
-      loop_control:
-        label: "{{ item.name }}"
-
-    - name: Fix missing dependencies after deb install
-      become: true
-      ansible.builtin.command: "apt-get install -f -y"
-      when:
-        - gui_deb_install is defined
-        - gui_deb_install.results | selectattr('rc', 'defined') | selectattr('rc', 'ne', 0) | list | length > 0
-    - name: Install Linux GUI applications
-      ansible.builtin.include_tasks: install_gui_app.yml
-      loop: "{{ package_manifest.gui_apps | default([]) | selectattr('linux', 'defined') | list }}"
-      loop_control:
-        loop_var: gui_app
-        label: "{{ gui_app.name }}"
+      community.general.flatpak:
+        name: "{{ package_manifest.flatpak_apps | default([]) }}"
+        state: present
+        remote: flathub
+        method: system
 
 - name: Upgrade Neovim to latest available version
   become: true

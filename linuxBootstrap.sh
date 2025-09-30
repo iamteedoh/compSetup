@@ -1,4 +1,3 @@
----
 #!/bin/bash
 
 set -euo pipefail
@@ -11,15 +10,19 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 echo -e "${YELLOW}[$TIMESTAMP] Starting Linux bootstrap script...${NC}" | tee "$LOGFILE"
 
-echo -ne "${YELLOW}Enter your sudo password (used for bootstrap and Ansible): ${NC}"
-stty -echo
-read -r SUDO_PASS
-stty echo
-printf "\n"
+if [ -t 0 ]; then
+  echo -ne "${YELLOW}Enter your sudo password (used for bootstrap and Ansible): ${NC}"
+  stty -echo
+  read -r SUDO_PASS
+  stty echo
+  printf "\n"
+else
+  read -r SUDO_PASS
+fi
 
 if ! printf "%s\n" "$SUDO_PASS" | sudo -S -v >/dev/null 2>&1; then
   echo -e "${RED}Failed to validate sudo credentials. Exiting.${NC}" | tee -a "$LOGFILE"

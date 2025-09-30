@@ -114,6 +114,7 @@
       register: cask_arm
       failed_when: false
       changed_when: false
+
   rescue:
     - debug:
         msg: "ARM cask install encountered errors; proceeding to Intel fallback where applicable."

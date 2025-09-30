@@ -104,3 +104,32 @@
     state: link
     force: true
   become: true
+
+- name: Locate zsh binary
+  ansible.builtin.command: which zsh
+  register: located_zsh
+  changed_when: false
+  failed_when: located_zsh.rc != 0
+
+- name: Set zsh as default shell
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_user_id }}"
+    shell: "{{ located_zsh.stdout | default('/bin/zsh') }}"
+  when:
+    - located_zsh.stdout is defined
+    - located_zsh.stdout != ''
+    - (ansible_env.SHELL | default('')) != located_zsh.stdout
+
+- name: Ensure Bash shells hand off to zsh
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    marker: "# {mark} auto-exec zsh"
+    block: |
+      if command -v zsh >/dev/null 2>&1; then
+        if [ -z "$ZSH_VERSION" ]; then
+          export SHELL="$(command -v zsh)"
+          exec "$SHELL"
+        fi
+      fi
+  when: located_zsh.stdout is defined and located_zsh.stdout != ''
