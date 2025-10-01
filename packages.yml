@@ -157,6 +157,7 @@ package_manifest:
 
   flatpak_apps:
     - com.brave.Browser
+    - com.getmailspring.Mailspring
     - com.discordapp.Discord
     - com.google.Chrome
     - com.slack.Slack

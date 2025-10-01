@@ -115,12 +115,11 @@
         method: system
 
     - name: Install Flatpak applications
-      become: true
-      community.general.flatpak:
-        name: "{{ package_manifest.flatpak_apps | default([]) }}"
-        state: present
-        remote: flathub
-        method: system
+      ansible.builtin.include_tasks: install_flatpak_app.yml
+      loop: "{{ package_manifest.flatpak_apps | default([]) }}"
+      loop_control:
+        loop_var: flatpak_app
+        label: "{{ flatpak_app }}"
 
 - name: Install Linux CLI extras
   when:
