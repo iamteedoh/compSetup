@@ -146,6 +146,8 @@ package_manifest:
       - flatpak
       - gnome-software-plugin-flatpak
       - fontconfig
+      - npm
+      - docker-compose
     by_distribution:
       ubuntu:
         - software-properties-common
@@ -169,7 +171,6 @@ package_manifest:
     - net.cozic.joplin_desktop
     - network.loki.Session
     - org.raspberrypi.rpi-imager
-    - org.signal.Signal
     - org.standardnotes.standardnotes
     - org.videolan.VLC
     - com.obsproject.Studio
