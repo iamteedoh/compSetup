@@ -75,7 +75,7 @@ COMPLETION_WAITING_DOTS="true"
 # see 'man strftime' for details.
 # HIST_STAMPS="mm/dd/yyyy"
 HIST_STAMPS="%Y-%m-%d %H:%M:%S"
-HISTSIZE=10000    # Number of commands stored in memory
+HISTS            IZE=10000    # Number of commands stored in memory
 SAVEHIST=1000000  # Number of commands saved in the history file
 
 setopt INC_APPEND_HISTORY  # Every command is apprended to the history file immediately after exec.
@@ -138,6 +138,24 @@ alias gitb='git --no-pager branch'
 alias gita='git --no-pager branch -a'
 alias bwl="bw list items | jq 'map(del(.login.password))'"
 
+# === apt-upgrade-report helpers ===
+# PATH safety (usually not needed, but harmless)
+export PATH="/usr/local/bin:$PATH"
+
+# Function wrapper so you can pass days easily (defaults to 1)
+full-upgrade() {
+  local days="${1:-1}"
+  # Update + upgrade + then generate report
+  sudo apt update && sudo apt upgrade -y && apt-upgrade-report -d "$days"
+}
+
+# Optional: quick alias if you like typing shorter
+alias fur='full-upgrade'
+
+# Optional: trivial completion for days 0..14
+_full_upgrade_complete() { compadd 1 2 3 4 5 6 7 8 9 10 11 12 13 14 }
+compdef _full_upgrade_complete full-upgrade
+
 # Aliases for TaskWarrior:
 alias task2daysago='task completed end.after:now-2d'
 alias taskyesterday='task completed end:yesterday'
@@ -155,5 +173,7 @@ fcd() {
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+[ -f ~/.p10k.zsh ] && source ~/.p10k.zsh
 
 

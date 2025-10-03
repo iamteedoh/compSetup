@@ -1,0 +1,111 @@
+{% raw %}
+#!/usr/bin/env bash
+# apt-upgrade-report — upgrade & changelog reporter with logging
+# Usage:
+#   apt-upgrade-report                 # last 1 day
+#   apt-upgrade-report 3               # last 3 days (positional)
+#   apt-upgrade-report -d 3 --md       # flags: days + also save Markdown
+set -euo pipefail
+
+usage() {
+  cat <<USAGE
+Usage: $(basename "$0") [--days N|-d N] [--md] [--help]
+  --days N | -d N   Number of days to include (default: 1). You can also pass N as a single positional arg.
+  --md              Save a Markdown copy alongside the text report.
+  --help            Show this help and exit.
+Examples:
+  $(basename "$0")
+  $(basename "$0") 3
+  $(basename "$0") -d 7 --md
+USAGE
+}
+
+DAYS=1
+SAVE_MD=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -d|--days)
+      [[ $# -ge 2 ]] || { echo "Error: --days requires a value" >&2; exit 2; }
+      DAYS="$2"; shift 2;;
+    --md)
+      SAVE_MD=1; shift;;
+    -h|--help)
+      usage; exit 0;;
+    *)
+      if [[ "$1" =~ ^[0-9]+$ ]]; then
+        DAYS="$1"; shift
+      else
+        echo "Unknown argument: $1" >&2
+        usage
+        exit 2
+      fi
+      ;;
+  esac
+done
+
+REPORT_DIR="$HOME/apt-upgrade-reports"
+TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
+REPORT_FILE="$REPORT_DIR/upgrade-report-$TIMESTAMP.txt"
+mkdir -p "$REPORT_DIR"
+
+DATE_REGEX="$(
+  for i in $(seq 0 $((DAYS-1))); do date -d "$i days ago" +%Y-%m-%d; done | paste -sd'|'
+)"
+
+LOG_STREAM="$(mktemp)"
+trap 'rm -f "$LOG_STREAM"' EXIT
+zcat -f /var/log/dpkg.log* 2>/dev/null > "$LOG_STREAM" || true
+
+readarray -t PACKAGES < <(
+  grep -E "$DATE_REGEX" "$LOG_STREAM" \
+  | grep ' upgrade ' \
+  | awk '{print $4}' \
+  | cut -d: -f1 \
+  | sort -u
+)
+
+if [[ ${#PACKAGES[@]} -eq 0 ]]; then
+  echo "No packages upgraded in the last $DAYS day(s)."
+  exit 0
+fi
+
+{
+  echo "============================================"
+  echo "📅 Upgrade Report - Generated on $(date)"
+  echo "🗂  Time window: Last $DAYS day(s)"
+  echo "============================================"
+  echo
+
+  for pkg in "${PACKAGES[@]}"; do
+    echo "=============================="
+    echo "📦 $pkg"
+    echo "=============================="
+    if ! apt changelog "$pkg" 2>/dev/null; then
+      echo "(No changelog available)"
+    fi
+    echo
+  done
+} | tee "$REPORT_FILE"
+
+if [[ "$SAVE_MD" -eq 1 ]]; then
+  MD_FILE="${REPORT_FILE%.txt}.md"
+  {
+    echo "# Upgrade Report"
+    echo
+    echo "- Generated: $(date)"
+    echo "- Window: Last $DAYS day(s)"
+    echo
+    for pkg in "${PACKAGES[@]}"; do
+      echo "## $pkg"
+      if ! apt changelog "$pkg" 2>/dev/null; then
+        echo "(No changelog available)"
+      fi
+      echo
+    done
+  } > "$MD_FILE"
+  echo "📝 Markdown copy saved to: $MD_FILE"
+fi
+
+echo "✅ Text report saved to: $REPORT_FILE"
+{% endraw %}

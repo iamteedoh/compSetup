@@ -107,6 +107,10 @@ package_manifest:
       brew_cask: typora
     - name: visual-studio-code
       brew_cask: visual-studio-code
+    - name: signal-desktop
+      linux:
+        type: apt
+        package: signal-desktop
 
   fonts:
     - name: font-0xproto-nerd-font
@@ -143,6 +147,9 @@ package_manifest:
       - build-essential
       - python3-pip
       - python3-venv
+      - gnome-keyring
+      - seahorse
+      - libsecret-tools
       - flatpak
       - gnome-software-plugin-flatpak
       - fontconfig

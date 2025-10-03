@@ -72,6 +72,58 @@
     - apt_packages_available is defined
     - apt_packages_available | length > 0
 
+- name: Compute Linux GUI package names
+  set_fact:
+    signal_linux_packages: >-
+      {{ package_manifest.gui_apps | default([])
+         | selectattr('linux', 'defined')
+         | selectattr('linux.package', 'defined')
+         | map(attribute='linux.package')
+         | list }}
+  when: ansible_system == 'Linux'
+
+- name: Configure Signal Desktop repository
+  when:
+    - ansible_system == 'Linux'
+    - signal_linux_packages | select('equalto', 'signal-desktop') | list | length > 0
+  block:
+    - name: Ensure signal keyring directory exists
+      become: true
+      ansible.builtin.file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Download Signal signing key
+      ansible.builtin.get_url:
+        url: https://updates.signal.org/desktop/apt/keys.asc
+        dest: /tmp/signal-desktop-keys.asc
+        mode: "0644"
+
+    - name: Install Signal signing key
+      become: true
+      ansible.builtin.command: gpg --dearmor --output /usr/share/keyrings/signal-desktop-keyring.gpg /tmp/signal-desktop-keys.asc
+      args:
+        creates: /usr/share/keyrings/signal-desktop-keyring.gpg
+
+    - name: Remove temporary Signal key
+      ansible.builtin.file:
+        path: /tmp/signal-desktop-keys.asc
+        state: absent
+
+    - name: Add Signal Desktop sources list
+      become: true
+      ansible.builtin.get_url:
+        url: https://updates.signal.org/static/desktop/apt/signal-desktop.sources
+        dest: /etc/apt/sources.list.d/signal-desktop.sources
+        mode: "0644"
+
+    - name: Refresh apt cache after adding Signal repo
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+      changed_when: false
+
 - name: Install Nerd Fonts on Linux
   when:
     - ansible_system == 'Linux'
