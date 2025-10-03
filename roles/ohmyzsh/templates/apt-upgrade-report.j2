@@ -1,11 +1,12 @@
 {% raw %}
 #!/usr/bin/env bash
+if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
+set -euo pipefail
 # apt-upgrade-report — upgrade & changelog reporter with logging
 # Usage:
 #   apt-upgrade-report                 # last 1 day
 #   apt-upgrade-report 3               # last 3 days (positional)
 #   apt-upgrade-report -d 3 --md       # flags: days + also save Markdown
-set -euo pipefail
 
 usage() {
   cat <<USAGE
