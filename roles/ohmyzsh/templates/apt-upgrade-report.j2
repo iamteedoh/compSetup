@@ -4,25 +4,27 @@ if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 set -euo pipefail
 # apt-upgrade-report — upgrade & changelog reporter with logging
 # Usage:
-#   apt-upgrade-report                 # last 1 day
-#   apt-upgrade-report 3               # last 3 days (positional)
+#   apt-upgrade-report                 # run update/upgrade + last 1 day report
+#   apt-upgrade-report 3               # run update/upgrade + last 3 days report
+#   apt-upgrade-report --no-upgrade    # skip upgrade, just generate report
 #   apt-upgrade-report -d 3 --md       # flags: days + also save Markdown
-
 usage() {
   cat <<USAGE
-Usage: $(basename "$0") [--days N|-d N] [--md] [--help]
+Usage: $(basename "$0") [--days N|-d N] [--md] [--no-upgrade] [--help]
   --days N | -d N   Number of days to include (default: 1). You can also pass N as a single positional arg.
   --md              Save a Markdown copy alongside the text report.
+  --no-upgrade      Skip running 'sudo apt update && sudo apt upgrade -y'.
   --help            Show this help and exit.
 Examples:
   $(basename "$0")
   $(basename "$0") 3
-  $(basename "$0") -d 7 --md
+  $(basename "$0") -d 7 --md --no-upgrade
 USAGE
 }
 
 DAYS=1
 SAVE_MD=0
+RUN_UPGRADE=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,6 +33,8 @@ while [[ $# -gt 0 ]]; do
       DAYS="$2"; shift 2;;
     --md)
       SAVE_MD=1; shift;;
+    --no-upgrade)
+      RUN_UPGRADE=0; shift;;
     -h|--help)
       usage; exit 0;;
     *)
@@ -44,6 +48,13 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ $RUN_UPGRADE -eq 1 ]]; then
+  echo "== Running apt update"
+  sudo apt update
+  echo "== Running apt upgrade"
+  sudo apt upgrade -y
+fi
 
 REPORT_DIR="$HOME/apt-upgrade-reports"
 TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
