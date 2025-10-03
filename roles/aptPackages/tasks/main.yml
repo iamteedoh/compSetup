@@ -1,13 +1,17 @@
 ---
 - name: Remove Snap Neovim if present
   become: true
-  ansible.builtin.command: "snap remove --purge nvim"
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if command -v snap >/dev/null 2>&1 && snap list nvim >/dev/null 2>&1; then
+      snap remove --purge nvim
+    fi
+  args:
+    executable: /bin/bash
   register: snap_remove_nvim
-  changed_when: snap_remove_nvim.rc == 0
+  changed_when: snap_remove_nvim.stdout != ""
   failed_when: false
-  when:
-    - ansible_system == 'Linux'
-    - ('/snap/bin' in ansible_env.PATH)
+  when: ansible_system == 'Linux'
 
 - name: Add Neovim PPA on Ubuntu/Pop!_OS
   become: true

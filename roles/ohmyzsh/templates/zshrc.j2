@@ -156,6 +156,13 @@ alias fur='full-upgrade'
 _full_upgrade_complete() { compadd 1 2 3 4 5 6 7 8 9 10 11 12 13 14 }
 compdef _full_upgrade_complete full-upgrade
 
+TRAPWINCH() {
+  if [[ -o zle ]]; then
+    zle reset-prompt
+    zle -R
+  fi
+}
+
 # Aliases for TaskWarrior:
 alias task2daysago='task completed end.after:now-2d'
 alias taskyesterday='task completed end:yesterday'
