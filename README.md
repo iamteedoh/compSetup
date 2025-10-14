@@ -75,9 +75,11 @@ cd "$HOME/git/personal/compSetup"
   - Executes `ansible-playbook site.yml`
 - Optional roles can be invoked with tags. Examples:
 
+  - For installing DaVinci Resolve dependencies role:
+  
   ```bash
-  ANSIBLE_TAGS=davinci_resolve ./bootstrap.sh             # run Pop!_OS DaVinci dependencies
-  ansible-playbook site.yml --tags davinci_resolve --ask-become-pass
+  ANSIBLE_TAGS=davinci_resolve ./bootstrap.sh             # run Pop!_OS DaVinci dependencies via bootstrap OR
+  ansible-playbook site.yml --tags davinci_resolve --ask-become-pass # run the ansible playbook directly outside of bootstrap.sh
   ```
 
 ### apt-upgrade-report helper
