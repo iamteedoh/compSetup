@@ -6,27 +6,26 @@ Automate opinionated workstation setup with Ansible. This project provisions pla
 
 - Homebrew management via the `brewPackages` role
   - Detects Apple Silicon vs Intel and uses the correct `brew` prefix
-  - Installs taps, casks, and formulae
-  - Idempotent cask installs (skips already-installed casks)
+  - Installs taps, casks, and formulae (CLI tools like `lsd` replace legacy `colorls`)
   - Installs VS Code extensions where VS Code CLI is available
   - Falls back to Intel Homebrew with Rosetta only when ARM install fails
 - Shell customization
   - Installs Oh My Zsh only if missing
   - Installs Powerlevel10k theme and sets `ZSH_THEME="powerlevel10k/powerlevel10k"`
-  - Ensures `~/.p10k.zsh` is sourced
+  - Ensures `~/.p10k.zsh` is sourced and redraws cleanly on terminal resize
   - Installs `p10k_setup.py` helper into the proper Homebrew `bin` directory:
     - Apple Silicon: `/opt/homebrew/bin/p10k_setup.py`
     - Intel: `/usr/local/bin/p10k_setup.py`
-  - Sets script owner/group to the invoking user and adds compatibility symlinks if needed
+  - Adds convenience helpers such as `apt-upgrade-report` and `full-upgrade`
 - Fonts (for glyphs)
-  - Installs Nerd Fonts idempotently via Homebrew casks
+  - Installs Nerd Fonts idempotently via Homebrew casks on macOS and Flatpak-friendly downloads on Linux
   - Default font: 0xProto Nerd Font (`font-0xproto-nerd-font`)
   - Also installs Fira Code and Fira Mono Nerd Fonts by default
   - Optionally install additional Nerd Fonts
 - Sensible bootstrap UX
   - Single sudo prompt; credentials are cached for the entire run
   - Ansible becomes non-interactive (password is passed securely via a temp vars file)
-  - Verbose logs saved to `bootstrap.log`
+  - Verbose logs saved to `bootstrap.log` with color-preserved stdout (use `less -R bootstrap.log`)
 
 ## Prerequisites (first run)
 
@@ -72,16 +71,33 @@ cd "$HOME/git/personal/compSetup"
   - Validates and caches sudo (macOS)
   - Installs platform dependencies (Homebrew on macOS, apt packages on Ubuntu/Pop!_OS)
   - Installs Ansible, required collections, and VS Code extensions when applicable
+  - Streams colored Ansible output while teeing to `bootstrap.log`
   - Executes `ansible-playbook site.yml`
+- Optional roles can be invoked with tags. Examples:
+
+  ```bash
+  ANSIBLE_TAGS=davinci_resolve ./bootstrap.sh             # run Pop!_OS DaVinci dependencies
+  ansible-playbook site.yml --tags davinci_resolve --ask-become-pass
+  ```
+
+### apt-upgrade-report helper
+
+The ohmyzsh role installs `/usr/local/bin/apt-upgrade-report`, a convenience wrapper for maintaining apt upgrades and generating changelog reports. Usage:
+
+```bash
+apt-upgrade-report            # apt update && apt upgrade -y, report last 1 day
+apt-upgrade-report --md       # same, plus Markdown copy
+apt-upgrade-report --no-upgrade --days 7  # skip upgrade, report last 7 days
+```
 
 ## Options and configuration
 
 - Package manifest: edit `packages.yml`
   - `brew_taps`: Homebrew taps to enable
-  - `cli_tools`: shared CLI tools with `brew_formula` and/or `apt`
-  - `gui_apps`: Homebrew casks (optionally map to other managers)
-  - `fonts`: Nerd fonts installed via Homebrew casks
-  - `apt_only`: apt-specific packages (common/by distribution/by desktop)
+  - `cli_tools`: shared CLI tools with `brew_formula` and/or `apt` (e.g., `lsd` replaces `colorls`)
+  - `gui_apps`: Homebrew casks and Linux installers (apt, deb, Flatpak)
+  - `fonts`: Nerd fonts installed via Homebrew casks / Linux downloads
+  - `apt_only`: apt-specific packages (common/by distribution/by desktop) including GNOME keyring helpers
   - `vscode_extensions`: extensions installed when the VS Code CLI is present
 - Role variables (Powerlevel10k)
   - `p10k_install_ohmyzsh_if_missing` (default: true)
@@ -124,9 +140,10 @@ flowchart TD
   J --> K[Detect VS Code CLI]
   K --> L[Run ansible-playbook<br/>pass become password via temp vars]
   L --> M[Role: brewPackages<br/>taps, casks, formulae, VS Code extensions]
-  M --> N[Role: ohmyzsh<br/>install if missing]
-  N --> O[Role: powerlevel10k<br/>clone theme, set ZSH_THEME, p10k_setup.py, fonts]
-  O --> P[Done]
+  M --> N[Role: ohmyzsh + apt-upgrade-report helper]
+  N --> O[Role: powerlevel10k<br/>clone theme, set ZSH_THEME, fonts, prompt resize handler]
+  O --> P[Optional roles (nvchad, iterm2, davinci_resolve)]
+  P --> Q[Done]
 ```
 
 ## Post-run steps

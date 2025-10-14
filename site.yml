@@ -97,5 +97,7 @@
       tags: ['nvchad']
     - role: vscode_extensions
       when: install_vscode_extensions | bool
+    - role: davinci_resolve
+      tags: ['davinci_resolve']
     - role: iterm2
       when: ansible_system == 'Darwin'
