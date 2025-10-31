@@ -22,6 +22,9 @@ Automate opinionated workstation setup with Ansible. This project provisions pla
   - Default font: 0xProto Nerd Font (`font-0xproto-nerd-font`)
   - Also installs Fira Code and Fira Mono Nerd Fonts by default
   - Optionally install additional Nerd Fonts
+- Neovim (NVChad) configuration
+  - Bootstraps NVChad starter with custom templates in `roles/nvchad`
+  - Installs GitHub Copilot for Neovim with opinionated keymaps for macOS and Linux
 - Sensible bootstrap UX
   - Single sudo prompt; credentials are cached for the entire run
   - Ansible becomes non-interactive (password is passed securely via a temp vars file)
@@ -154,6 +157,7 @@ flowchart TD
   - Terminal.app: Preferences → Profiles → Text → Font
   - iTerm2: Preferences → Profiles → Text → Font
 - Open a new terminal tab/window or run `exec zsh` to reload shell
+- Authenticate GitHub Copilot inside Neovim on each machine (macOS and Linux): launch `nvim`, run `:Copilot setup`, and follow the browser flow to authorize. Afterward, accept suggestions with `Ctrl+L`, dismiss with `Ctrl+\`, and open the Copilot panel with `<leader>cp`.
 - Optional: Run the helper to configure Powerlevel10k
 
 ```bash
@@ -166,6 +170,13 @@ p10k_setup.py
   - Load your own `.p10k.zsh`
 
 Note: Powerlevel10k config uses the `POWERLEVEL9K_*` variable namespace by design for backward compatibility. This is expected.
+
+## GitHub Copilot for Neovim
+
+- The NVChad role installs `github/copilot.vim` and wires custom keymaps, so Copilot is available anywhere you sync this config (macOS or Linux).
+- Node.js must be present: macOS gets it via the Homebrew `node` formula; on Linux install Node.js (for example `sudo apt install nodejs npm`) before running the playbook or syncing the config.
+- Authenticate per machine by opening Neovim and running `:Copilot setup`, which launches the GitHub sign-in flow described in the [copilot.vim documentation](https://github.com/github/copilot.vim/tree/release).
+- Keymaps: `Ctrl+L` accepts the inline suggestion, `Ctrl+\` dismisses it, and `<leader>cp` opens the Copilot panel. Additional commands such as `:Copilot status`, `:Copilot enable`, and `:Copilot disable` remain available.
 
 ## Idempotency and performance notes
 

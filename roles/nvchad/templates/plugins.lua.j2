@@ -111,6 +111,47 @@ return {
       pcall(function() require("custom.lint") end)
     end,
   },
+
+  -- GitHub Copilot for inline AI suggestions
+  {
+    "github/copilot.vim",
+    event = "InsertEnter",
+    config = function()
+      vim.g.copilot_no_tab_map = true
+      vim.g.copilot_assume_mapped = true
+
+      vim.g.copilot_filetypes = {
+        ["*"] = true,
+        markdown = true,
+        gitcommit = true,
+        help = false,
+        lazy = false,
+        ["TelescopePrompt"] = false,
+        ["dap-repl"] = false,
+      }
+
+      local accept = function()
+        return vim.fn["copilot#Accept"]("\\<CR>")
+      end
+
+      vim.keymap.set("i", "<C-l>", accept, {
+        expr = true,
+        silent = true,
+        replace_keycodes = false,
+        desc = "Copilot accept suggestion",
+      })
+
+      vim.keymap.set("i", "<C-\\>", "<Plug>(copilot-dismiss)", {
+        silent = true,
+        desc = "Copilot dismiss suggestion",
+      })
+
+      vim.keymap.set("n", "<leader>cp", "<cmd>Copilot panel<CR>", { desc = "Copilot panel" })
+      vim.keymap.set("n", "<leader>cs", "<cmd>Copilot status<CR>", { desc = "Copilot status" })
+      vim.keymap.set("n", "<leader>ce", "<cmd>Copilot enable<CR>", { desc = "Copilot enable" })
+      vim.keymap.set("n", "<leader>cd", "<cmd>Copilot disable<CR>", { desc = "Copilot disable" })
+    end,
+  },
 }
 
 
