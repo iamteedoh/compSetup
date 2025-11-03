@@ -59,13 +59,6 @@
     backup: yes
     owner: "{{ ansible_env.USER | default(ansible_user_id) }}"
 
-- name: Deploy apt-upgrade-report helper
-  ansible.builtin.template:
-    src: apt-upgrade-report.j2
-    dest: /usr/local/bin/apt-upgrade-report
-    mode: "0755"
-  become: true
-
 #############################
 # Optional: colorls install #
 #############################

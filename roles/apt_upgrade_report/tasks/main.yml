@@ -1,0 +1,9 @@
+---
+- name: Install apt-upgrade-report helper
+  when: ansible_system == 'Linux'
+  become: true
+  ansible.builtin.template:
+    src: apt-upgrade-report.j2
+    dest: /usr/local/bin/apt-upgrade-report
+    mode: "0755"
+

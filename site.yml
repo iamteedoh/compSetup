@@ -91,6 +91,8 @@
       when: ansible_system == 'Darwin'
     - role: aptPackages
       when: ansible_system == 'Linux'
+    - role: apt_upgrade_report
+      when: ansible_system == 'Linux'
     - role: ohmyzsh
     - role: powerlevel10k
     - role: nvchad

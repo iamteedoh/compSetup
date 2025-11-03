@@ -76,20 +76,20 @@ cd "$HOME/git/personal/compSetup"
 - Optional roles can be invoked with tags. Examples:
 
   - For installing DaVinci Resolve dependencies role:
-  
-  ```bash
-  ANSIBLE_TAGS=davinci_resolve ./bootstrap.sh             # run Pop!_OS DaVinci dependencies via bootstrap OR
-  ansible-playbook site.yml --tags davinci_resolve --ask-become-pass # run the ansible playbook directly outside of bootstrap.sh
-  ```
+
+    ```bash
+    ANSIBLE_TAGS=davinci_resolve ./bootstrap.sh             # run Pop!_OS DaVinci dependencies via bootstrap OR
+    ansible-playbook site.yml --tags davinci_resolve --ask-become-pass # run the ansible playbook directly outside of bootstrap.sh
+    ```
 
 ### apt-upgrade-report helper
 
-The ohmyzsh role installs `/usr/local/bin/apt-upgrade-report`, a convenience wrapper for maintaining apt upgrades and generating changelog reports. Usage:
+The `apt_upgrade_report` role (enabled on Linux) installs `/usr/local/bin/apt-upgrade-report`, which upgrades both apt and Flatpak packages before producing a changelog report. Usage:
 
 ```bash
-apt-upgrade-report            # apt update && apt upgrade -y, report last 1 day
+apt-upgrade-report            # apt & flatpak update/upgrade, report last 1 day
 apt-upgrade-report --md       # same, plus Markdown copy
-apt-upgrade-report --no-upgrade --days 7  # skip upgrade, report last 7 days
+apt-upgrade-report --no-upgrade --days 7  # skip upgrades, report last 7 days
 ```
 
 ## Options and configuration

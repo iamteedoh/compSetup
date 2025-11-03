@@ -54,6 +54,10 @@ if [[ $RUN_UPGRADE -eq 1 ]]; then
   sudo apt update
   echo "== Running apt upgrade"
   sudo apt upgrade -y
+  if command -v flatpak >/dev/null 2>&1; then
+    echo "== Running flatpak update"
+    flatpak update -y
+  fi
 fi
 
 REPORT_DIR="$HOME/apt-upgrade-reports"
