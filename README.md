@@ -84,11 +84,11 @@ cd "$HOME/git/personal/compSetup"
 
 ### apt-upgrade-report helper
 
-The `apt_upgrade_report` role (enabled on Linux) installs `/usr/local/bin/apt-upgrade-report`, which upgrades both apt and Flatpak packages before producing a changelog report. Usage:
+The `apt_upgrade_report` role is enabled automatically on Linux hosts. It installs `/usr/local/bin/apt-upgrade-report`, which upgrades both apt and Flatpak packages before producing changelog reports in `~/Documents/upgradeReports`. A Markdown report is created by default (a text copy is saved alongside it for convenience). Usage:
 
 ```bash
-apt-upgrade-report            # apt & flatpak update/upgrade, report last 1 day
-apt-upgrade-report --md       # same, plus Markdown copy
+apt-upgrade-report                  # apt & flatpak update/upgrade, Markdown + text for last 1 day
+apt-upgrade-report --no-md          # skip Markdown copy; save only the text report
 apt-upgrade-report --no-upgrade --days 7  # skip upgrades, report last 7 days
 ```
 
@@ -197,6 +197,8 @@ Note: Powerlevel10k config uses the `POWERLEVEL9K_*` variable namespace by desig
   - `tasks/main.yml`: theme install, config wiring, helper script, fonts
   - `files/p10k_setup.py`: optional Powerlevel10k setup helper
   - `templates/p10k_default_src.j2`: bundled default `.p10k.zsh` (templating disabled via `{% raw %}`)
+- `roles/apt_upgrade_report`: installs the `apt-upgrade-report` helper that upgrades apt/Flatpak and writes reports to `~/Documents/upgradeReports`
+- `roles/davinci_resolve`: optional Pop!_OS dependencies (i386 architecture, library shims) enabled via `--tags davinci_resolve`
 
 ## Security
 
