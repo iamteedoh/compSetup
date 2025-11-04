@@ -7,23 +7,24 @@ set -euo pipefail
 #   apt-upgrade-report                 # run update/upgrade + last 1 day report
 #   apt-upgrade-report 3               # run update/upgrade + last 3 days report
 #   apt-upgrade-report --no-upgrade    # skip upgrade, just generate report
-#   apt-upgrade-report -d 3 --md       # flags: days + also save Markdown
+#   apt-upgrade-report --no-md         # skip Markdown copy
+#   apt-upgrade-report -d 3            # flags: days + toggles
 usage() {
   cat <<USAGE
-Usage: $(basename "$0") [--days N|-d N] [--md] [--no-upgrade] [--help]
+Usage: $(basename "$0") [--days N|-d N] [--no-md] [--no-upgrade] [--help]
   --days N | -d N   Number of days to include (default: 1). You can also pass N as a single positional arg.
-  --md              Save a Markdown copy alongside the text report.
+  --no-md           Skip saving the Markdown copy.
   --no-upgrade      Skip running 'sudo apt update && sudo apt upgrade -y'.
   --help            Show this help and exit.
 Examples:
   $(basename "$0")
   $(basename "$0") 3
-  $(basename "$0") -d 7 --md --no-upgrade
+  $(basename "$0") -d 7 --no-md --no-upgrade
 USAGE
 }
 
 DAYS=1
-SAVE_MD=0
+SAVE_MD=1
 RUN_UPGRADE=1
 
 while [[ $# -gt 0 ]]; do
@@ -31,8 +32,8 @@ while [[ $# -gt 0 ]]; do
     -d|--days)
       [[ $# -ge 2 ]] || { echo "Error: --days requires a value" >&2; exit 2; }
       DAYS="$2"; shift 2;;
-    --md)
-      SAVE_MD=1; shift;;
+    --no-md)
+      SAVE_MD=0; shift;;
     --no-upgrade)
       RUN_UPGRADE=0; shift;;
     -h|--help)
@@ -60,9 +61,10 @@ if [[ $RUN_UPGRADE -eq 1 ]]; then
   fi
 fi
 
-REPORT_DIR="$HOME/apt-upgrade-reports"
+REPORT_DIR="$HOME/Documents/upgradeReports"
 TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
-REPORT_FILE="$REPORT_DIR/upgrade-report-$TIMESTAMP.txt"
+REPORT_FILE_TXT="$REPORT_DIR/upgrade-report-$TIMESTAMP.txt"
+REPORT_FILE_MD="$REPORT_DIR/upgrade-report-$TIMESTAMP.md"
 mkdir -p "$REPORT_DIR"
 
 DATE_REGEX="$(
@@ -102,10 +104,9 @@ fi
     fi
     echo
   done
-} | tee "$REPORT_FILE"
+} | tee "$REPORT_FILE_TXT"
 
 if [[ "$SAVE_MD" -eq 1 ]]; then
-  MD_FILE="${REPORT_FILE%.txt}.md"
   {
     echo "# Upgrade Report"
     echo
@@ -114,14 +115,13 @@ if [[ "$SAVE_MD" -eq 1 ]]; then
     echo
     for pkg in "${PACKAGES[@]}"; do
       echo "## $pkg"
-      if ! apt changelog "$pkg" 2>/dev/null; then
-        echo "(No changelog available)"
+      if ! apt changelog "$pkg" 2>/div
       fi
       echo
     done
-  } > "$MD_FILE"
-  echo "📝 Markdown copy saved to: $MD_FILE"
+  } > "$REPORT_FILE_MD"
+  echo "📝 Markdown copy saved to: $REPORT_FILE_MD"
 fi
 
-echo "✅ Text report saved to: $REPORT_FILE"
+echo "✅ Text report saved to: $REPORT_FILE_TXT"
 {% endraw %}
