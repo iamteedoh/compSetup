@@ -156,6 +156,8 @@ package_manifest:
       - npm
       - docker-compose
       - tree
+      - bat
+      - gh
     by_distribution:
       ubuntu:
         - software-properties-common
