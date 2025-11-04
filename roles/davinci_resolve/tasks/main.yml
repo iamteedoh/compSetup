@@ -59,10 +59,10 @@
 
     - name: Fail if any DaVinci dependency could not be resolved
       ansible.builtin.fail:
-        msg: "Unable to resolve package candidate(s): {{ item.item | join(' | ') }}"
+        msg: "Unable to resolve package candidate(s): {{ item.candidate_list | join(' | ') }}"
       loop: "{{ davinci_dependency_resolution.results }}"
       loop_control:
-        label: "{{ item.item | join(' | ') }}"
+        label: "{{ item.candidate_list | join(' | ') }}"
       when: item.rc != 0
 
     - name: Collect DaVinci Resolve package list
