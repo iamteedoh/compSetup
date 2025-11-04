@@ -98,27 +98,35 @@
         state: directory
         mode: "0755"
 
+    - name: Check for existing Signal signing key
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/signal-desktop-keyring.gpg
+      register: signal_key
+
     - name: Download Signal signing key
       ansible.builtin.get_url:
         url: https://updates.signal.org/desktop/apt/keys.asc
         dest: /tmp/signal-desktop-keys.asc
         mode: "0644"
+      when: not signal_key.stat.exists
 
     - name: Install Signal signing key
       become: true
       ansible.builtin.command: gpg --dearmor --output /usr/share/keyrings/signal-desktop-keyring.gpg /tmp/signal-desktop-keys.asc
       args:
         creates: /usr/share/keyrings/signal-desktop-keyring.gpg
+      when: not signal_key.stat.exists
 
     - name: Remove temporary Signal key
       ansible.builtin.file:
         path: /tmp/signal-desktop-keys.asc
         state: absent
+      when: not signal_key.stat.exists
 
-    - name: Add Signal Desktop sources list
+    - name: Install Signal Desktop sources list
       become: true
-      ansible.builtin.get_url:
-        url: https://updates.signal.org/static/desktop/apt/signal-desktop.sources
+      ansible.builtin.template:
+        src: signal-desktop.sources.j2
         dest: /etc/apt/sources.list.d/signal-desktop.sources
         mode: "0644"
 

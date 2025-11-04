@@ -11,7 +11,7 @@
 - name: Check for existing font files
   ansible.builtin.find:
     paths: "{{ current_font_dest }}"
-    patterns: "{{ font_item.linux.pattern | default(font_item.name ~ '*.ttf') }}"
+    patterns: "{{ font_item.linux.pattern | default('*.ttf') }}"
     file_type: file
   register: current_font_find
 
