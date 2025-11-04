@@ -61,7 +61,17 @@ if [[ $RUN_UPGRADE -eq 1 ]]; then
   fi
 fi
 
-REPORT_DIR="$HOME/Documents/upgradeReports"
+REPORT_DIR="$(python3 - <<'PY'
+import os
+uid = os.getuid()
+if uid == 0 and 'SUDO_USER' in os.environ:
+    target = os.environ['SUDO_USER']
+    home = os.path.expanduser(f"~{target}")
+else:
+    home = os.path.expanduser('~')
+print(os.path.join(home, 'Documents', 'upgradeReports'))
+PY
+)"
 TIMESTAMP="$(date +"%Y-%m-%d_%H-%M-%S")"
 REPORT_FILE_TXT="$REPORT_DIR/upgrade-report-$TIMESTAMP.txt"
 REPORT_FILE_MD="$REPORT_DIR/upgrade-report-$TIMESTAMP.md"
@@ -115,7 +125,8 @@ if [[ "$SAVE_MD" -eq 1 ]]; then
     echo
     for pkg in "${PACKAGES[@]}"; do
       echo "## $pkg"
-      if ! apt changelog "$pkg" 2>/div
+      if ! apt changelog "$pkg" 2>/dev/null; then
+        echo "(No changelog available)"
       fi
       echo
     done
