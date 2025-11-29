@@ -139,6 +139,9 @@ alias gita='git --no-pager branch -a'
 alias bwl="bw list items | jq 'map(del(.login.password))'"
 alias bat='batcat'
 
+# Other Options
+ssh-add ~/.ssh/id_ed25519 2>/dev/null
+
 # === apt-upgrade-report helpers ===
 # PATH safety (usually not needed, but harmless)
 export PATH="/usr/local/bin:$PATH"
