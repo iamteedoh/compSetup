@@ -8,7 +8,7 @@ set -u
 # --- Configuration & State ---
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 OS_NAME=$(uname -s)
-BLACKLIST_FILE="$SCRIPT_DIR/.install_blacklist"
+BLACKLIST_FILE="$HOME/.install_blacklist"
 
 # State Variables
 SKIP_AI_TOOLS=false
@@ -134,11 +134,13 @@ edit_blacklist() {
     draw_header
     echo ""
     echo -e "  ${BOLD}Package Blacklist Editor${RESET}"
-    echo -e "  Packages listed in ${YELLOW}.install_blacklist${RESET} will be skipped."
+    echo -e "  Packages listed in ${YELLOW}${BLACKLIST_FILE}${RESET} will be skipped."
     echo ""
     if [[ ! -f "$BLACKLIST_FILE" ]]; then
         touch "$BLACKLIST_FILE"
-        echo -e "  ${GREEN}Created new blacklist file.${RESET}"
+        echo -e "  ${GREEN}Created new blacklist file at ${BLACKLIST_FILE}${RESET}"
+        echo -e "  ${DIM}This file tracks packages you want to persistently omit.${RESET}"
+        sleep 2
     fi
     
     echo -e "  Opening editor (${EDITOR:-nano})..."
@@ -170,10 +172,6 @@ run_installation() {
     echo ""
     
     # Run the OS specific script
-    # We want to show output but frame it? 
-    # For true realtime output without buffering issues, direct execution is best.
-    # We just let it scroll in the "pane" area below the header.
-    
     case "$OS_NAME" in
       Darwin)
         "$SCRIPT_DIR/macOSBootstrap.sh" "${ARGS[@]}"
@@ -202,13 +200,55 @@ run_installation() {
 # --- Argument Parsing (CLI Mode) ---
 # If args are provided, skip TUI and run directly (headless mode)
 if [[ $# -gt 0 ]]; then
+    PASSTHROUGH_ARGS=()
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --omit)
+                # Handle --omit flag by updating the blacklist file
+                PACKAGES_TO_OMIT="${2:-}"
+                if [[ -z "$PACKAGES_TO_OMIT" || "$PACKAGES_TO_OMIT" =~ ^-- ]]; then
+                    echo "Error: --omit requires a package list argument." >&2
+                    exit 1
+                fi
+                shift 2
+                
+                if [[ ! -f "$BLACKLIST_FILE" ]]; then
+                    touch "$BLACKLIST_FILE"
+                    echo -e "${GREEN}Created blacklist file at ${BLACKLIST_FILE}${RESET}"
+                fi
+                
+                for pkg in $PACKAGES_TO_OMIT; do
+                    if ! grep -q "^$pkg$" "$BLACKLIST_FILE"; then
+                        echo "$pkg" >> "$BLACKLIST_FILE"
+                        echo -e "${YELLOW}Added '$pkg' to blacklist.${RESET}"
+                    fi
+                done
+                ;;
+            *)
+                PASSTHROUGH_ARGS+=("$1")
+                shift
+                ;;
+        esac
+    done
+    
+    # Read blacklist content to pass as --omit-list to inner scripts
+    OMIT_CONTENT=""
+    if [[ -f "$BLACKLIST_FILE" ]]; then
+        OMIT_CONTENT=$(grep -v '^\s*$' "$BLACKLIST_FILE" | tr '\n' ' ')
+    fi
+    
+    if [[ -n "$OMIT_CONTENT" ]]; then
+        PASSTHROUGH_ARGS+=("--omit-list" "$OMIT_CONTENT")
+    fi
+
     # Simple pass-through wrapper logic for headless
     case "$OS_NAME" in
       Darwin)
-        exec "$SCRIPT_DIR/macOSBootstrap.sh" "$@"
+        exec "$SCRIPT_DIR/macOSBootstrap.sh" "${PASSTHROUGH_ARGS[@]}"
         ;;
       Linux)
-        exec "$SCRIPT_DIR/linuxBootstrap.sh" "$@"
+        exec "$SCRIPT_DIR/linuxBootstrap.sh" "${PASSTHROUGH_ARGS[@]}"
         ;;
       *)
         echo "Unsupported OS"

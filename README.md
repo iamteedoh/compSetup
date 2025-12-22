@@ -58,8 +58,14 @@ Run the bootstrap script from the repo root:
 ./bootstrap.sh
 ```
 
-### Interactive Menu & Flags
-When you run the script, an **interactive menu** will guide you. You can also use flags to skip the menu or customize the install:
+### TUI (Text User Interface)
+By default, the script launches a **beautiful interactive menu**.
+- **Main Menu**: Choose between Standard Install, No AI Tools, Custom Configuration, or Blacklist Editing.
+- **Custom Config**: Visually toggle options like "Skip AI Tools", "Install DaVinci", etc.
+- **Real-time Output**: Execution output is streamed within a framed pane.
+
+### Command Line Flags (Headless Mode)
+You can skip the TUI and run directly using flags (useful for scripts/CI):
 
 ```bash
 # Skip AI tools (Gemini, Claude, Antigravity)
@@ -80,9 +86,12 @@ When you run the script, an **interactive menu** will guide you. You can also us
 
 ### Omit / Blacklist Packages
 You can persistently blacklist packages you never want to install.
-- Using `--omit "pkg1 pkg2"` creates or updates a `.install_blacklist` file in the repo.
-- If this file exists, future runs will automatically skip the listed packages.
-- Example: `./bootstrap.sh --omit "google-chrome"` will add Chrome to the blacklist and skip it.
+- **File Location**: `~/.install_blacklist` (in your home directory).
+- **How to edit**:
+  - Use option **[4]** in the TUI menu.
+  - Or manually edit `~/.install_blacklist`.
+  - Or use the flag: `./bootstrap.sh --omit "pkg1 pkg2"`.
+- **Behavior**: If a package is listed in this file, the installer will automatically skip it during every run.
 
 ## Supported Tools
 
@@ -130,7 +139,7 @@ This project is designed to be **idempotent**, meaning you can run it multiple t
 - **Downloads**: Large files (fonts, keys) are only downloaded if missing.
 - **Repositories**: Cache is updated only if repositories change.
 - **Packages**: Only missing items are installed.
-- **Blacklist**: Respects your `.install_blacklist` file.
+- **Blacklist**: Respects your `~/.install_blacklist` file.
 
 ## Post-run steps
 
@@ -149,7 +158,7 @@ This project is designed to be **idempotent**, meaning you can run it multiple t
 
 ## Project layout
 
-- `bootstrap.sh`: Main entry point (interactive menu + flags).
+- `bootstrap.sh`: Main entry point (interactive TUI + flags).
 - `site.yml`: Main Ansible playbook.
 - `packages.yml`: List of all packages.
 - `roles/aptPackages`: Debian/Ubuntu specific logic.
