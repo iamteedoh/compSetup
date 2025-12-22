@@ -2,227 +2,132 @@
 
 Automate opinionated workstation setup with Ansible. This project provisions platform-appropriate package managers (Homebrew on macOS, apt on Ubuntu/Pop!_OS), optional VS Code extensions, Oh My Zsh, the Powerlevel10k prompt, and the fonts required for beautiful glyphs. It is idempotent and optimized for Apple Silicon (with graceful Intel fallbacks where needed) and Ubuntu/Pop!_OS (including Cosmic desktop specific tooling).
 
-## What this does
+## Getting Started (Fresh Install)
 
-- Homebrew management via the `brewPackages` role
-  - Detects Apple Silicon vs Intel and uses the correct `brew` prefix
-  - Installs taps, casks, and formulae (CLI tools like `lsd` replace legacy `colorls`)
-  - Installs VS Code extensions where VS Code CLI is available
-  - Falls back to Intel Homebrew with Rosetta only when ARM install fails
-- Shell customization
-  - Installs Oh My Zsh only if missing
-  - Installs Powerlevel10k theme and sets `ZSH_THEME="powerlevel10k/powerlevel10k"`
-  - Ensures `~/.p10k.zsh` is sourced and redraws cleanly on terminal resize
-  - Installs `p10k_setup.py` helper into the proper Homebrew `bin` directory:
-    - Apple Silicon: `/opt/homebrew/bin/p10k_setup.py`
-    - Intel: `/usr/local/bin/p10k_setup.py`
-  - Adds convenience helpers such as `apt-upgrade-report` and `full-upgrade`
-- Fonts (for glyphs)
-  - Installs Nerd Fonts idempotently via Homebrew casks on macOS and Flatpak-friendly downloads on Linux
-  - Default font: 0xProto Nerd Font (`font-0xproto-nerd-font`)
-  - Also installs Fira Code and Fira Mono Nerd Fonts by default
-  - Optionally install additional Nerd Fonts
-- Neovim (NVChad) configuration
-  - Bootstraps NVChad starter with custom templates in `roles/nvchad`
-  - Installs GitHub Copilot for Neovim with opinionated keymaps for macOS and Linux
-- Sensible bootstrap UX
-  - Single sudo prompt; credentials are cached for the entire run
-  - Ansible becomes non-interactive (password is passed securely via a temp vars file)
-  - Verbose logs saved to `bootstrap.log` with color-preserved stdout (use `less -R bootstrap.log`)
+If you have just logged into a brand new computer, follow these steps to get everything running.
 
-## Prerequisites (first run)
+### 1. Open your Terminal
+- **macOS**: Press `Command + Space`, type "Terminal", and hit Enter.
+- **Ubuntu/Pop!_OS**: Press `Super` (Windows key), type "Terminal", and hit Enter.
 
-### macOS
+### 2. Install Git
+You need `git` to download this repository.
 
-You need Homebrew and Git to clone this repo. Use this one-liner (Apple Silicon and Intel supported):
-
+**macOS**:
+Running `git` will trigger the install prompt if it's missing.
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; \
-if [[ -x /opt/homebrew/bin/brew ]]; then eval "$(/opt/homebrew/bin/brew shellenv)"; else eval "$(/usr/local/bin/brew shellenv)"; fi; \
-brew install git; \
-cd "$HOME"; \
-git clone <REPO_URL> "$HOME/git/personal/compSetup"; \
-cd "$HOME/git/personal/compSetup"; \
-./bootstrap.sh
+git --version
 ```
+Follow the prompts to install the "Command Line Developer Tools".
 
-### Ubuntu / Pop!_OS (Cosmic)
-
-Ensure you have git, curl, and sudo privileges available (the bootstrap will install other dependencies automatically).
-
+**Ubuntu / Pop!_OS**:
 ```bash
 sudo apt update
 sudo apt install -y git curl
-git clone <REPO_URL> "$HOME/git/personal/compSetup"
-cd "$HOME/git/personal/compSetup"
+```
+
+### 3. Download and Run
+Copy and paste these commands into your terminal:
+
+```bash
+# Clone the repository
+git clone https://github.com/iamteedoh/compSetup.git ~/git/compSetup
+
+# Enter the directory
+cd ~/git/compSetup
+
+# Make the script executable
+chmod +x bootstrap.sh
+
+# Run the setup
 ./bootstrap.sh
 ```
 
-- Replace `<REPO_URL>` with your repository URL.
-- The script will prompt for your password as needed by `sudo`.
+The script will prompt you for your `sudo` password once and handle the rest.
 
 ## Usage
 
-- Run the bootstrap script from the repo root:
+Run the bootstrap script from the repo root:
 
 ```bash
 ./bootstrap.sh
 ```
 
-- The script:
-  - Detects the host operating system (macOS or Linux)
-  - Validates and caches sudo (macOS)
-  - Installs platform dependencies (Homebrew on macOS, apt packages on Ubuntu/Pop!_OS)
-  - Installs Ansible, required collections, and VS Code extensions when applicable
-  - Streams colored Ansible output while teeing to `bootstrap.log`
-  - Executes `ansible-playbook site.yml`
-- Optional roles can be invoked with tags. Examples:
+### AI Tools Installation
+When you run the script, an **interactive menu** will ask if you want to install AI tools (Gemini CLI, Claude Code, Antigravity).
+- **Option 1**: Install everything.
+- **Option 2**: Install everything **EXCEPT** AI tools.
+- **Option 3**: Exit.
 
-  - For installing DaVinci Resolve dependencies role:
-
-    ```bash
-    ANSIBLE_TAGS=davinci_resolve ./bootstrap.sh             # run Pop!_OS DaVinci dependencies via bootstrap OR
-    ansible-playbook site.yml --tags davinci_resolve --ask-become-pass # run the ansible playbook directly outside of bootstrap.sh
-    ```
-
-### apt-upgrade-report helper
-
-The `apt_upgrade_report` role is enabled automatically on Linux hosts. It installs `/usr/local/bin/apt-upgrade-report`, which upgrades both apt and Flatpak packages before producing changelog reports in `~/Documents/upgradeReports`. A Markdown report is created by default (a text copy is saved alongside it for convenience). Usage:
-
+**Skip the menu**:
+You can skip the interactive menu and automatically skip AI tools by using the `--skip-ai-tools` flag:
 ```bash
-apt-upgrade-report                  # apt & flatpak update/upgrade, Markdown + text for last 1 day
-apt-upgrade-report --no-md          # skip Markdown copy; save only the text report
-apt-upgrade-report --no-upgrade --days 7  # skip upgrades, report last 7 days
+./bootstrap.sh --skip-ai-tools
 ```
 
-## Options and configuration
-
-- Package manifest: edit `packages.yml`
-  - `brew_taps`: Homebrew taps to enable
-  - `cli_tools`: shared CLI tools with `brew_formula` and/or `apt` (e.g., `lsd` replaces `colorls`)
-  - `gui_apps`: Homebrew casks and Linux installers (apt, deb, Flatpak)
-  - `fonts`: Nerd fonts installed via Homebrew casks / Linux downloads
-  - `apt_only`: apt-specific packages (common/by distribution/by desktop) including GNOME keyring helpers
-  - `vscode_extensions`: extensions installed when the VS Code CLI is present
-- Role variables (Powerlevel10k)
-  - `p10k_install_ohmyzsh_if_missing` (default: true)
-  - `p10k_script_dest` (default: arch-aware Homebrew bin path)
-  - `p10k_python_script_src` (custom helper script source)
-  - `p10k_default_src` (custom default `.p10k.zsh` content source)
-  - `set_zsh_default` (default: false)
-  - Fonts (all default true/values):
-    - `p10k_install_fonts: true`
-    - `p10k_font_cask: font-0xproto-nerd-font` (default font choice)
-    - `p10k_install_fira_fonts: true`
-    - `p10k_fira_font_casks: ['font-fira-code-nerd-font','font-fira-mono-nerd-font']`
-    - `p10k_extra_font_casks: ['font-0xproto-nerd-font']` (extend this list as needed)
-
-## Flowchart (execution overview)
-
-```mermaid
-flowchart TD
-  A[Start ./bootstrap.sh] --> B{macOS?}
-  B -- Yes --> C1[Prompt once for sudo<br/>cache credentials]
-  C1 --> D1[Install/repair Homebrew]
-  D1 --> E1[Apple Silicon?]
-  E1 -- Yes --> F1[Ensure Rosetta 2]
-  E1 -- No --> G1[Skip Rosetta]
-  F1 --> H1[Install macOS prerequisites]
-  G1 --> H1
-  B -- No --> C2[Install apt prerequisites]
-  C2 --> H2[Install apt packages]
-  H1 --> I[Install Ansible + collections]
-  H2 --> I
-  B --> C[Install Homebrew if missing<br/>setup shellenv]
-  C --> D[Homebrew health check<br/>update/upgrade if needed]
-  D --> E{Apple Silicon?}
-  E -- Yes --> F[Ensure Rosetta 2 if needed]
-  E -- No --> G[Skip Rosetta]
-  F --> H[Xcode Command Line Tools check]
-  G --> H[Xcode Command Line Tools check]
-  H --> I[Install Ansible]
-  I --> J[Install Ansible collections]
-  J --> K[Detect VS Code CLI]
-  K --> L[Run ansible-playbook<br/>pass become password via temp vars]
-  L --> M[Role: brewPackages<br/>taps, casks, formulae, VS Code extensions]
-  M --> N[Role: ohmyzsh + apt-upgrade-report helper]
-  N --> O[Role: powerlevel10k<br/>clone theme, set ZSH_THEME, fonts, prompt resize handler]
-  O --> P[Optional roles (nvchad, iterm2, davinci_resolve)]
-  P --> Q[Done]
+**Help**:
+View all available options:
+```bash
+./bootstrap.sh --help
 ```
+
+### Optional Roles
+You can invoke specific roles using tags. For example, to install DaVinci Resolve dependencies on Pop!_OS:
+```bash
+ANSIBLE_TAGS=davinci_resolve ./bootstrap.sh
+```
+
+## What this does
+
+- **Package Management**:
+  - **macOS**: Installs Homebrew, taps, casks, and formulae. Detects Apple Silicon vs Intel.
+  - **Linux**: Installs apt packages, adds repositories (NodeSource, Signal, etc.), and Flatpaks.
+- **Shell Customization**:
+  - Installs Oh My Zsh (if missing).
+  - Installs Powerlevel10k theme and configures it.
+- **Fonts**:
+  - Installs Nerd Fonts (0xProto, Fira Code, Fira Mono) for proper glyph rendering.
+- **Neovim (NVChad)**:
+  - Bootstraps NVChad with custom configuration.
+  - Installs GitHub Copilot for Neovim.
+- **Apps**:
+  - Installs VS Code and extensions.
+  - Installs GUI apps (Signal, etc.) and CLI tools.
+
+## Idempotency and Performance
+
+This project is designed to be **idempotent**, meaning you can run it multiple times without breaking anything. It respects your existing setup:
+- **Downloads**: Large files (fonts, keys) are only downloaded if missing.
+- **Repositories**: `apt-get update` is only run if a new repository is added or if the cache is old.
+- **Packages**:
+  - Homebrew casks/formulae are installed only if missing.
+  - Apt packages are checked against the current state.
+- **Configs**: Configuration files are created or updated only if necessary.
 
 ## Post-run steps
 
-- Set your terminal’s font to a Nerd Font for glyphs (default installed: 0xProto Nerd Font Mono)
-  - Terminal.app: Preferences → Profiles → Text → Font
-  - iTerm2: Preferences → Profiles → Text → Font
-- Open a new terminal tab/window or run `exec zsh` to reload shell
-- Authenticate GitHub Copilot inside Neovim on each machine (macOS and Linux): launch `nvim`, run `:Copilot setup`, and follow the browser flow to authorize. Afterward, accept suggestions with `Ctrl+L`, dismiss with `Ctrl+\`, and open the Copilot panel with `<leader>cp`.
-- Optional: Run the helper to configure Powerlevel10k
-
-```bash
-p10k_setup.py
-```
-
-- Choices in helper:
-  - Use the bundled default `.p10k.zsh`
-  - Run the interactive `p10k configure` wizard
-  - Load your own `.p10k.zsh`
-
-Note: Powerlevel10k config uses the `POWERLEVEL9K_*` variable namespace by design for backward compatibility. This is expected.
-
-## GitHub Copilot for Neovim
-
-- The NVChad role installs `github/copilot.vim` and wires custom keymaps, so Copilot is available anywhere you sync this config (macOS or Linux).
-- Node.js must be present: macOS gets it via the Homebrew `node` formula; on Linux install Node.js (for example `sudo apt install nodejs npm`) before running the playbook or syncing the config.
-- Authenticate per machine by opening Neovim and running `:Copilot setup`, which launches the GitHub sign-in flow described in the [copilot.vim documentation](https://github.com/github/copilot.vim/tree/release).
-- Keymaps: `Ctrl+L` accepts the inline suggestion, `Ctrl+\` dismisses it, and `<leader>cp` opens the Copilot panel. Additional commands such as `:Copilot status`, `:Copilot enable`, and `:Copilot disable` remain available.
-
-## Idempotency and performance notes
-
-- Casks: only missing items are installed (skips already-installed)
-- Formulae: only missing items are installed (skips already-installed)
-- Fonts: installed via Homebrew casks with `state: present` (idempotent)
-- Powerlevel10k and Oh My Zsh: installed only if missing
+1. **Fonts**: Set your terminal’s font to `0xProto Nerd Font Mono` (or FiraCode) in your terminal preferences.
+2. **Shell**: Open a new terminal tab or run `exec zsh` to load the new shell.
+3. **GitHub Copilot**:
+   - Open Neovim (`nvim`).
+   - Run `:Copilot setup` and follow the browser authentication steps.
+4. **Powerlevel10k**:
+   - Run `p10k_setup.py` if you want to re-configure the prompt style.
 
 ## Troubleshooting
 
-- Become password prompt reappears
-  - Ensure the initial sudo prompt succeeded; the bootstrap caches and forwards the password to Ansible
-- Fonts don’t render correctly
-  - Ensure your terminal profile uses a Nerd Font (e.g., 0xProto Nerd Font Mono)
-- VS Code extensions aren’t installed
-  - Ensure VS Code is installed before the run or re-run with VS Code installed
-- Powerlevel10k not active
-  - Ensure `ZSH_THEME="powerlevel10k/powerlevel10k"` is present in `~/.zshrc`
-  - Open a new terminal or run `exec zsh`
+- **Password Prompt**: If asked for a password again, it means the cached credentials expired. The script tries to keep them alive.
+- **Fonts**: If icons look weird, ensure your terminal is using a "Nerd Font".
+- **VS Code**: Extensions install only if VS Code CLI (`code`) is found in your PATH.
 
-## Project layout (key files)
+## Project layout
 
-- `macOSBootstrap.sh`: entrypoint; handles sudo, Homebrew, Ansible invocation
-- `site.yml`: main playbook
-- `brewPackages.yml`: declare desired taps/casks/formulae and VS Code extensions
-- `roles/brewPackages`: Homebrew and VS Code automation
-- `roles/ohmyzsh`: installs Oh My Zsh (only if missing)
-- `roles/powerlevel10k`:
-  - `tasks/main.yml`: theme install, config wiring, helper script, fonts
-  - `files/p10k_setup.py`: optional Powerlevel10k setup helper
-  - `templates/p10k_default_src.j2`: bundled default `.p10k.zsh` (templating disabled via `{% raw %}`)
-- `roles/apt_upgrade_report`: installs the `apt-upgrade-report` helper that upgrades apt/Flatpak and writes reports to `~/Documents/upgradeReports`
-- `roles/davinci_resolve`: optional Pop!_OS dependencies (i386 architecture, library shims) enabled via `--tags davinci_resolve`
-
-## Security
-
-- The bootstrap prompts once for your password and caches it for the run
-- Ansible receives the become password through a secure temporary vars file (deleted immediately after use)
-- The helper script is installed with ownership set to the invoking user
-
-## Compatibility
-
-- macOS (Apple Silicon and Intel)
-- Requires network access to GitHub/Homebrew sources
+- `bootstrap.sh`: Main entry point (interactive menu + flags).
+- `linuxBootstrap.sh` / `macOSBootstrap.sh`: OS-specific logic.
+- `site.yml`: Main Ansible playbook.
+- `packages.yml`: List of all packages to install.
+- `roles/`: Ansible roles for specific components (zsh, neovim, etc.).
 
 ## License
 
 This project is provided under the GNU General Public License v3.0. See [LICENSE](LICENSE).
-
