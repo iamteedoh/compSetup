@@ -1,149 +1,257 @@
 #!/bin/bash
 
-set -euo pipefail
+# CompSetup - The Ultimate Bootstrapper
+# TUI Wrapper for macOS and Linux setup scripts
 
+set -u
+
+# --- Configuration & State ---
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 OS_NAME=$(uname -s)
+BLACKLIST_FILE="$SCRIPT_DIR/.install_blacklist"
 
+# State Variables
 SKIP_AI_TOOLS=false
 INSTALL_DAVINCI=false
 SKIP_VSCODE=false
-BLACKLIST_FILE="$SCRIPT_DIR/.install_blacklist"
-OMIT_INPUT=""
+OMIT_LIST=""
 
-# Helper function to print help message
-show_help() {
-    echo "Usage: $0 [OPTIONS]"
-    echo
-    echo "Options:"
-    echo "  -h, --help                 Show this help message and exit"
-    echo "  --skip-ai-tools            Skip installation of AI tools (gemini-cli, claude-cli, antigravity)"
-    echo "  --install-davinci          Install DaVinci Resolve dependencies (Pop!_OS/Linux only)"
-    echo "  --skip-vscode-extensions   Skip installation of VS Code extensions"
-    echo "  --omit \"pkg1 pkg2\"         List of packages to omit from installation (saved to .install_blacklist)"
-    echo
-    echo "If no options are provided, an interactive menu will be shown."
+# --- Colors & Styles ---
+ESC=$(printf '\033')
+RESET="${ESC}[0m"
+BOLD="${ESC}[1m"
+DIM="${ESC}[2m"
+RED="${ESC}[31m"
+GREEN="${ESC}[32m"
+YELLOW="${ESC}[33m"
+BLUE="${ESC}[34m"
+MAGENTA="${ESC}[35m"
+CYAN="${ESC}[36m"
+WHITE="${ESC}[37m"
+
+# Backgrounds
+BG_BLUE="${ESC}[44m"
+BG_BLACK="${ESC}[40m"
+
+# Icons
+ICON_OS=""
+ICON_AI="🤖"
+ICON_CODE=""
+ICON_MEDIA=""
+ICON_PKG=""
+ICON_WARN=""
+ICON_CHECK=""
+
+# --- Helper Functions ---
+
+# Clear screen
+clear_screen() {
+    printf "${ESC}[2J${ESC}[H"
 }
 
-# Helper function to print usage or interactive menu
-print_menu() {
-    echo "Installation Options:"
-    echo "1. Install everything (Standard)"
-    echo "2. Install everything EXCEPT AI tools (gemini-cli, claude-cli, antigravity)"
-    echo "3. Custom Install (Prompts for options)"
-    echo "4. Exit"
-    echo -n "Please select an option (1-4): "
+# Draw a horizontal line
+draw_line() {
+    local char="${1:-─}"
+    local width=$(tput cols)
+    for ((i=0; i<width; i++)); do printf "%s" "$char"; done
+    printf "\n"
 }
 
-# Check for flags or interactive mode
-if [[ $# -gt 0 ]]; then
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -h|--help)
-                show_help
-                exit 0
+# Draw Header
+draw_header() {
+    clear_screen
+    printf "${BG_BLUE}${WHITE}${BOLD}  %s  COMPSETUP BOOTSTRAPPER  %s  ${RESET}\n" "$ICON_PKG" "$ICON_OS"
+    printf "${BG_BLACK}${CYAN}  OS: ${OS_NAME} | User: ${USER} | Dir: ${SCRIPT_DIR}  ${RESET}\n"
+    draw_line "━"
+}
+
+# Status Badge
+get_status_badge() {
+    if [[ "$1" == "true" ]]; then
+        printf "${GREEN}[ON]${RESET}"
+    else
+        printf "${DIM}[OFF]${RESET}"
+    fi
+}
+
+# Main Menu
+show_main_menu() {
+    draw_header
+    echo ""
+    echo -e "  ${BOLD}Select an action:${RESET}"
+    echo ""
+    echo -e "  ${CYAN}[1]${RESET} 🚀 Install Everything (Standard)"
+    echo -e "  ${CYAN}[2]${RESET} 🍃 Install Everything (No AI Tools)"
+    echo -e "  ${CYAN}[3]${RESET} ⚙️  Custom Installation / Configure Options"
+    echo -e "  ${CYAN}[4]${RESET} 📝 Edit Package Blacklist"
+    echo -e "  ${CYAN}[Q]${RESET} ❌ Exit"
+    echo ""
+    draw_line "─"
+    echo -e "${DIM}  Use number keys to select.${RESET}"
+}
+
+# Custom Config Menu
+show_custom_menu() {
+    while true; do
+        draw_header
+        echo ""
+        echo -e "  ${BOLD}Custom Configuration:${RESET}"
+        echo ""
+        echo -e "  ${CYAN}[1]${RESET} ${ICON_AI} Skip AI Tools .................... $(get_status_badge $SKIP_AI_TOOLS)"
+        echo -e "  ${CYAN}[2]${RESET} ${ICON_CODE} Skip VS Code Extensions ........... $(get_status_badge $SKIP_VSCODE)"
+        echo -e "  ${CYAN}[3]${RESET} ${ICON_MEDIA} Install DaVinci Dependencies ...... $(get_status_badge $INSTALL_DAVINCI)"
+        echo ""
+        echo -e "  ${CYAN}[R]${RESET} ▶️  Run Installation with these settings"
+        echo -e "  ${CYAN}[B]${RESET} 🔙 Back to Main Menu"
+        echo ""
+        draw_line "─"
+        read -p "  Select option: " -n 1 -r custom_choice
+        echo ""
+        
+        case $custom_choice in
+            1) 
+                if [[ "$SKIP_AI_TOOLS" == "true" ]]; then SKIP_AI_TOOLS=false; else SKIP_AI_TOOLS=true; fi 
                 ;;
-            --skip-ai-tools)
-                SKIP_AI_TOOLS=true
-                shift
+            2) 
+                if [[ "$SKIP_VSCODE" == "true" ]]; then SKIP_VSCODE=false; else SKIP_VSCODE=true; fi 
                 ;;
-            --install-davinci)
-                INSTALL_DAVINCI=true
-                shift
+            3) 
+                if [[ "$INSTALL_DAVINCI" == "true" ]]; then INSTALL_DAVINCI=false; else INSTALL_DAVINCI=true; fi 
                 ;;
-            --skip-vscode-extensions)
-                SKIP_VSCODE=true
-                shift
+            [Rr])
+                run_installation
+                return
                 ;;
-            --omit)
-                if [[ -n "${2:-}" && ! "${2:-}" =~ ^-- ]]; then
-                    OMIT_INPUT="$2"
-                    shift 2
-                else
-                    echo "Error: --omit requires a package list argument." >&2
-                    exit 1
-                fi
-                ;;
-            *)
-                # Pass unknown args? Or error?
-                # For safety, let's ignore unknown or pass them?
-                # Inner scripts might not like them.
-                shift
+            [Bb])
+                return
                 ;;
         esac
     done
-else
-    # Interactive mode
-    print_menu
-    read -r choice
+}
+
+# Edit Blacklist
+edit_blacklist() {
+    draw_header
+    echo ""
+    echo -e "  ${BOLD}Package Blacklist Editor${RESET}"
+    echo -e "  Packages listed in ${YELLOW}.install_blacklist${RESET} will be skipped."
+    echo ""
+    if [[ ! -f "$BLACKLIST_FILE" ]]; then
+        touch "$BLACKLIST_FILE"
+        echo -e "  ${GREEN}Created new blacklist file.${RESET}"
+    fi
+    
+    echo -e "  Opening editor (${EDITOR:-nano})..."
+    sleep 1
+    ${EDITOR:-nano} "$BLACKLIST_FILE"
+    
+    # Reload omit list logic handled in run_installation
+}
+
+# Run Logic
+run_installation() {
+    # Prepare Omit List from file
+    OMIT_LIST=""
+    if [[ -f "$BLACKLIST_FILE" ]]; then
+        OMIT_LIST=$(grep -v '^\s*$' "$BLACKLIST_FILE" | tr '\n' ' ')
+    fi
+
+    # Build Arguments
+    ARGS=()
+    if [[ "$SKIP_AI_TOOLS" == "true" ]]; then ARGS+=("--skip-ai-tools"); fi
+    if [[ "$INSTALL_DAVINCI" == "true" ]]; then ARGS+=("--install-davinci"); fi
+    if [[ "$SKIP_VSCODE" == "true" ]]; then ARGS+=("--skip-vscode-extensions"); fi
+    if [[ -n "$OMIT_LIST" ]]; then ARGS+=("--omit-list" "$OMIT_LIST"); fi
+
+    draw_header
+    echo -e "${YELLOW}  ${ICON_PKG} Starting Installation...${RESET}"
+    echo -e "  ${DIM}Arguments: ${ARGS[*]}${RESET}"
+    draw_line "═"
+    echo ""
+    
+    # Run the OS specific script
+    # We want to show output but frame it? 
+    # For true realtime output without buffering issues, direct execution is best.
+    # We just let it scroll in the "pane" area below the header.
+    
+    case "$OS_NAME" in
+      Darwin)
+        "$SCRIPT_DIR/macOSBootstrap.sh" "${ARGS[@]}"
+        ;;
+      Linux)
+        "$SCRIPT_DIR/linuxBootstrap.sh" "${ARGS[@]}"
+        ;;
+      *)
+        echo -e "${RED}Unsupported OS: $OS_NAME${RESET}"
+        ;;
+    esac
+    
+    EXIT_CODE=$?
+    
+    echo ""
+    draw_line "═"
+    if [[ $EXIT_CODE -eq 0 ]]; then
+        echo -e "  ${GREEN}${ICON_CHECK} Installation Completed Successfully!${RESET}"
+    else
+        echo -e "  ${RED}${ICON_WARN} Installation Failed (Exit Code: $EXIT_CODE)${RESET}"
+    fi
+    echo -e "  ${DIM}Press Enter to return to menu...${RESET}"
+    read -r
+}
+
+# --- Argument Parsing (CLI Mode) ---
+# If args are provided, skip TUI and run directly (headless mode)
+if [[ $# -gt 0 ]]; then
+    # Simple pass-through wrapper logic for headless
+    case "$OS_NAME" in
+      Darwin)
+        exec "$SCRIPT_DIR/macOSBootstrap.sh" "$@"
+        ;;
+      Linux)
+        exec "$SCRIPT_DIR/linuxBootstrap.sh" "$@"
+        ;;
+      *)
+        echo "Unsupported OS"
+        exit 1
+        ;;
+    esac
+    exit 0
+fi
+
+# --- Main Loop (TUI Mode) ---
+while true; do
+    show_main_menu
+    read -p "  Selection: " -n 1 -r choice
+    echo ""
+    
     case $choice in
         1)
+            # Standard: Install Everything (Defaults: AI=false (meaning install it), VSCode=false (install it), Davinci=false)
             SKIP_AI_TOOLS=false
+            SKIP_VSCODE=false
+            # Should Davinci be default? No.
+            run_installation
             ;;
         2)
+            # No AI
             SKIP_AI_TOOLS=true
+            run_installation
             ;;
         3)
-            echo "Custom Install:"
-            read -p "Skip AI Tools? (y/n): " -r ais
-            [[ "$ais" =~ ^[Yy] ]] && SKIP_AI_TOOLS=true
-            
-            read -p "Install DaVinci Resolve dependencies? (y/n): " -r dav
-            [[ "$dav" =~ ^[Yy] ]] && INSTALL_DAVINCI=true
-
-            read -p "Skip VS Code Extensions? (y/n): " -r vsc
-            [[ "$vsc" =~ ^[Yy] ]] && SKIP_VSCODE=true
-
-            read -p "Enter packages to omit (space separated, or leave empty): " -r omits
-            OMIT_INPUT="$omits"
+            show_custom_menu
             ;;
         4)
-            echo "Exiting."
+            edit_blacklist
+            ;;
+        [Qq])
+            echo -e "\n  ${GREEN}Goodbye!${RESET}"
             exit 0
             ;;
         *)
-            echo "Invalid choice. Exiting."
-            exit 1
+            # Invalid
             ;;
     esac
-fi
+done
 
-# Handle Blacklist
-if [[ -n "$OMIT_INPUT" ]]; then
-    # Create file if not exists
-    touch "$BLACKLIST_FILE"
-    for pkg in $OMIT_INPUT; do
-        if ! grep -q "^$pkg$" "$BLACKLIST_FILE"; then
-            echo "$pkg" >> "$BLACKLIST_FILE"
-        fi
-    done
-fi
-
-OMIT_LIST=""
-if [[ -f "$BLACKLIST_FILE" ]]; then
-    # Read non-empty lines
-    OMIT_LIST=$(grep -v '^\s*$' "$BLACKLIST_FILE" | tr '\n' ' ')
-fi
-
-# Prepare arguments for the OS specific scripts
-ARGS=()
-if [[ "$SKIP_AI_TOOLS" == "true" ]]; then ARGS+=("--skip-ai-tools"); fi
-if [[ "$INSTALL_DAVINCI" == "true" ]]; then ARGS+=("--install-davinci"); fi
-if [[ "$SKIP_VSCODE" == "true" ]]; then ARGS+=("--skip-vscode-extensions"); fi
-if [[ -n "$OMIT_LIST" ]]; then ARGS+=("--omit-list" "$OMIT_LIST"); fi
-
-case "$OS_NAME" in
-  Darwin)
-    exec "$SCRIPT_DIR/macOSBootstrap.sh" "${ARGS[@]}"
-    ;;
-  Linux)
-    exec "$SCRIPT_DIR/linuxBootstrap.sh" "${ARGS[@]}"
-    ;;
-  *)
-    echo "Unsupported operating system: $OS_NAME" >&2
-    echo "Only macOS and Ubuntu/Pop!_OS (Linux) are currently supported." >&2
-    exit 1
-    ;;
-esac
 
 
