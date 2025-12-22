@@ -167,6 +167,52 @@ TRAPWINCH() {
   fi
 }
 
+### Trash bin settings
+
+# Cross-platform Trash Function
+function command_trash() {
+    # Check OS
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        if command -v trash &> /dev/null; then
+            # 'command' prevents infinite loop if alias is named 'trash'
+            command trash "$@"
+            echo "🗑️  Moved to macOS Trash: $@"
+        else
+            echo "Error: 'trash' not found. Run 'brew install trash'"
+        fi
+    else
+        # Linux
+        if command -v trash-put &> /dev/null; then
+            trash-put "$@"
+            echo "🗑️  Moved to Trash bin: $@"
+        else
+            echo "Error: 'trash-cli' not found. Run 'sudo apt install trash-cli'"
+        fi
+    fi
+}
+
+# Cross-platform Undo Function
+function command_undo() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS: Opens the GUI Trash folder
+        echo "Opening macOS Trash... Right-click items and select 'Put Back'."
+        open ~/.Trash
+    else
+        # Linux: Interactive restore menu
+        if command -v trash-restore &> /dev/null; then
+            trash-restore
+        else
+            echo "Error: 'trash-restore' not found."
+        fi
+    fi
+}
+
+# Aliases
+alias trash="command_trash"
+alias undo="command_undo"
+###########################################33
+
 # Aliases for TaskWarrior:
 alias task2daysago='task completed end.after:now-2d'
 alias taskyesterday='task completed end:yesterday'

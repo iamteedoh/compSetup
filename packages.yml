@@ -77,6 +77,9 @@ package_manifest:
     - name: watch
       brew_formula: watch
       apt: procps
+    - name: trash
+      brew_formula: trash
+      apt: trash-cli
 
   gui_apps:
     - name: cyberduck
