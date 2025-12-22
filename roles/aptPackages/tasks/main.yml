@@ -250,6 +250,26 @@
         - gem_bindir.stdout is defined
         - gem_bindir.stdout != ''
 
+    - name: Collect npm-based CLI tools
+      set_fact:
+        linux_npm_tools: >-
+          {{ package_manifest.cli_tools | default([])
+             | selectattr('linux', 'defined')
+             | selectattr('linux.type', 'defined')
+             | selectattr('linux.type', 'equalto', 'npm')
+             | list }}
+
+    - name: Install CLI tool via npm
+      become: true
+      community.general.npm:
+        name: "{{ item.linux.package }}"
+        global: true
+        state: present
+      loop: "{{ linux_npm_tools }}"
+      loop_control:
+        label: "{{ item.linux.package }}"
+      when: linux_npm_tools | length > 0
+
 - name: Upgrade Neovim to latest available version
   become: true
   ansible.builtin.apt:

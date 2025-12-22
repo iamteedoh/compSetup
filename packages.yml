@@ -80,6 +80,11 @@ package_manifest:
     - name: trash
       brew_formula: trash
       apt: trash-cli
+    - name: claude-code
+      brew_cask: claude-code
+      linux:
+        type: npm
+        package: @anthropic-ai/claude-code
 
   gui_apps:
     - name: cyberduck

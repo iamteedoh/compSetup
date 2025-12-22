@@ -55,6 +55,12 @@
               | list
             )
             + (
+              package_manifest.cli_tools | default([])
+              | selectattr('brew_cask', 'defined')
+              | map(attribute='brew_cask')
+              | list
+            )
+            + (
               package_manifest.fonts | default([])
               | selectattr('brew_cask', 'defined')
               | map(attribute='brew_cask')
