@@ -170,7 +170,6 @@ package_manifest:
       - flatpak
       - gnome-software-plugin-flatpak
       - fontconfig
-      - npm
       - docker-compose
       - tree
       - bat
