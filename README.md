@@ -18,12 +18,10 @@ Running `git` will trigger the install prompt if it's missing.
 ```bash
 git --version
 ```
-Follow the prompts to install the "Command Line Developer Tools".
 
 **Ubuntu / Pop!_OS**:
 ```bash
-sudo apt update
-sudo apt install -y git curl
+sudo apt update && sudo apt install -y git curl
 ```
 
 **Fedora / RPM**:
@@ -32,138 +30,69 @@ sudo dnf install -y git curl
 ```
 
 ### 3. Download and Run
-Copy and paste these commands into your terminal:
-
 ```bash
-# Clone the repository
 git clone https://github.com/iamteedoh/compSetup.git ~/git/compSetup
-
-# Enter the directory
 cd ~/git/compSetup
-
-# Make the script executable
 chmod +x bootstrap.sh
-
-# Run the setup
 ./bootstrap.sh
 ```
-
-The script will prompt you for your `sudo` password once and handle the rest.
 
 ## Usage
 
-Run the bootstrap script from the repo root:
-
-```bash
-./bootstrap.sh
-```
-
 ### TUI (Text User Interface)
-By default, the script launches a **beautiful interactive menu**.
-- **Main Menu**: Choose between Standard Install, No AI Tools, Custom Configuration, or Blacklist Editing.
-- **Custom Config**: Visually toggle options like "Skip AI Tools", "Install DaVinci", etc.
-- **Real-time Output**: Execution output is streamed within a framed pane.
+By default, running `./bootstrap.sh` launches a **beautiful interactive menu**:
+- **🚀 Standard Install**: Everything except DaVinci Resolve dependencies.
+- **🍃 No AI Tools**: Skip Gemini CLI, Claude Code, and Antigravity.
+- **⚙️ Custom Installation**: Toggle specific options (Skip AI, Skip VS Code, Install DaVinci) with real-time status badges.
+- **📝 Blacklist Editor**: Opens your default editor to manage `~/.install_blacklist`.
+- **Real-time Monitoring**: The installation output is streamed directly within the program pane.
 
 ### Command Line Flags (Headless Mode)
-You can skip the TUI and run directly using flags (useful for scripts/CI):
-
+You can skip the TUI for automation or specific tasks:
 ```bash
-# Skip AI tools (Gemini, Claude, Antigravity)
-./bootstrap.sh --skip-ai-tools
-
-# Skip VS Code Extensions
-./bootstrap.sh --skip-vscode-extensions
-
-# Install DaVinci Resolve dependencies (Linux only)
-./bootstrap.sh --install-davinci
-
-# Omit specific packages (space-separated list)
-./bootstrap.sh --omit "google-chrome cyberduck"
-
-# Combine flags
-./bootstrap.sh --skip-ai-tools --skip-vscode-extensions
+./bootstrap.sh --skip-ai-tools           # Skip AI tools
+./bootstrap.sh --skip-vscode-extensions  # Skip VS Code extensions
+./bootstrap.sh --install-davinci         # Install DaVinci deps (Linux)
+./bootstrap.sh --omit "pkg1 pkg2"        # Add specific packages to blacklist
 ```
 
-### Omit / Blacklist Packages
-You can persistently blacklist packages you never want to install.
-- **File Location**: `~/.install_blacklist` (in your home directory).
-- **How to edit**:
-  - Use option **[4]** in the TUI menu.
-  - Or manually edit `~/.install_blacklist`.
-  - Or use the flag: `./bootstrap.sh --omit "pkg1 pkg2"`.
-- **Behavior**: If a package is listed in this file, the installer will automatically skip it during every run.
+### Persistent Package Blacklist
+Avoid installing specific tools by adding them to your blacklist.
+- **Location**: `~/.install_blacklist` (created in your Home directory).
+- **Git Safety**: This file is kept locally and is never tracked by git.
+- **Feedback**: 
+  - ${ESC}[38;5;214mOrange${RESET} text confirms when a package is newly added.
+  - ${ESC}[35mPurple${RESET} text confirms if a package was already blacklisted.
 
 ## Supported Tools
 
-### CLI Tools
-- `ansible`, `git`, `curl`, `wget`, `unzip`, `gnupg`, `htop`
-- `neovim` (configured with NVChad), `python3`, `node`, `ruby`
-- `ripgrep`, `fd`, `bat`, `lsd` (modern replacements for grep, find, cat, ls)
-- `ffmpeg`, `graphviz`, `ncdu`, `trash-cli`, `watch`, `wakeonlan`
-- **AI Tools**: `gemini-cli` (@google/gemini-cli), `claude-code` (@anthropic-ai/claude-code)
+### CLI & Development
+- **Dev**: `ansible`, `git`, `python3`, `node`, `ruby`, `neovim` (NVChad)
+- **Modern CLI**: `ripgrep`, `fd`, `bat`, `lsd`, `htop`, `ncdu`
+- **AI**: `gemini-cli`, `claude-code`
+- **Utilities**: `ffmpeg`, `graphviz`, `unzip`, `wget`, `curl`, `trash-cli`
 
 ### GUI Applications
-- **Browsers**: `google-chrome`, `brave`, `firefox` (via system default)
+- **Browsers**: `google-chrome`, `brave`
 - **Editors**: `visual-studio-code` (with extensions), `typora`, `ghostty`
-- **Productivity**: `obsidian`, `joplin`, `standardnotes`, `proton-mail`, `proton-pass`
-- **Media**: `vlc`, `handbrake`, `gimp`, `obs-studio`, `davinci-resolve` (deps)
-- **Comm**: `signal-desktop`, `discord`, `slack`, `element` (riot), `session`
-- **Dev/Ops**: `docker`, `podman-desktop`, `minikube`, `helm`, `cyberduck`
+- **Privacy/Mail**: `proton-mail`, `proton-pass`, `bitwarden-cli`
+- **Media**: `vlc`, `handbrake`, `obs-studio`, `davinci-resolve` (deps)
+- **Comm**: `signal-desktop`, `discord`, `slack`, `element`, `session`
+- **Infrastructure**: `docker`, `podman-desktop`, `minikube`, `helm`
 
-### Fonts
-- **Default**: `0xProto Nerd Font`
-- **Extras**: `FiraCode Nerd Font`, `FiraMono Nerd Font`
-
-### VS Code Extensions
-- GitHub Copilot & Chat
-- Language support: Python (Pylance), Go, Rust (rust-analyzer), Ansible, YAML
-- Docker, Kubernetes tools
-- Vim keybindings
-
-## What this does
-
-- **Package Management**:
-  - **macOS**: Installs Homebrew, taps, casks, and formulae. Detects Apple Silicon vs Intel.
-  - **Linux (Debian/Ubuntu/Pop)**: Installs apt packages, adds repositories (NodeSource, Signal, etc.), and Flatpaks.
-  - **Linux (Fedora/RPM)**: Installs dnf packages and Flatpaks.
-- **Shell Customization**:
-  - Installs Oh My Zsh (if missing).
-  - Installs Powerlevel10k theme and configures it.
-- **Neovim (NVChad)**:
-  - Bootstraps NVChad with custom configuration.
-  - Installs GitHub Copilot for Neovim.
+### Appearance & Shell
+- **Fonts**: `0xProto Nerd Font` (default), `FiraCode`, `FiraMono`
+- **Shell**: Oh My Zsh + Powerlevel10k (p10k)
 
 ## Idempotency and Performance
-
-This project is designed to be **idempotent**, meaning you can run it multiple times without breaking anything. It respects your existing setup:
-- **Downloads**: Large files (fonts, keys) are only downloaded if missing.
-- **Repositories**: Cache is updated only if repositories change.
-- **Packages**: Only missing items are installed.
-- **Blacklist**: Respects your `~/.install_blacklist` file.
+- **Optimized Cache**: `apt` and `dnf` caches are only updated when repositories change or after 1 hour.
+- **Smart Downloads**: Fonts and keys are only fetched if they are missing from the system.
+- **Cross-Platform**: Intelligent detection for Apple Silicon (M1/M2/M3), Intel Mac, and various Linux distributions (Debian, Ubuntu, Pop!_OS, Fedora, and other RPM-based systems).
 
 ## Post-run steps
-
-1. **Fonts**: Set your terminal’s font to `0xProto Nerd Font Mono` (or FiraCode).
-2. **Shell**: Open a new terminal tab or run `exec zsh`.
-3. **GitHub Copilot**:
-   - Open Neovim (`nvim`).
-   - Run `:Copilot setup` and authenticate.
-4. **Powerlevel10k**:
-   - Run `p10k_setup.py` if needed.
-
-## Troubleshooting
-
-- **Password Prompt**: If asked for a password again, the cached sudo session expired.
-- **RPM Support**: On Fedora/RPM systems, some apt-specific packages might be skipped if the name differs significantly, but standard tools (git, neovim, etc.) and Flatpaks will install.
-
-## Project layout
-
-- `bootstrap.sh`: Main entry point (interactive TUI + flags).
-- `site.yml`: Main Ansible playbook.
-- `packages.yml`: List of all packages.
-- `roles/aptPackages`: Debian/Ubuntu specific logic.
-- `roles/rpmPackages`: Fedora/RPM specific logic.
+1. **Fonts**: Change your terminal font to `0xProto Nerd Font Mono`.
+2. **Shell**: Restart your terminal or run `exec zsh`.
+3. **Copilot**: Run `:Copilot setup` in `nvim` to authenticate.
 
 ## License
-
 GNU General Public License v3.0. See [LICENSE](LICENSE).

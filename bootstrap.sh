@@ -25,6 +25,7 @@ RED="${ESC}[31m"
 GREEN="${ESC}[32m"
 YELLOW="${ESC}[33m"
 ORANGE="${ESC}[38;5;214m"
+PURPLE="${ESC}[35m"
 BLUE="${ESC}[34m"
 MAGENTA="${ESC}[35m"
 CYAN="${ESC}[36m"
@@ -231,6 +232,8 @@ if [[ $# -gt 0 ]]; then
                     if ! grep -q "^$pkg$" "$BLACKLIST_FILE"; then
                         echo "$pkg" >> "$BLACKLIST_FILE"
                         echo -e "${ORANGE}Added '$pkg' to blacklist.${RESET}"
+                    else
+                        echo -e "${PURPLE}Package '$pkg' is already in the blacklist.${RESET}"
                     fi
                 done
                 echo ""
