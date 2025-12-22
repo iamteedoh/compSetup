@@ -38,6 +38,14 @@
       set_fact:
         install_vscode_extensions: "{{ install_vscode_extensions | default(true) | bool }}"
 
+    - name: Filter AI tools from package manifest
+      when: skip_ai_tools | default(false) | bool
+      set_fact:
+        package_manifest: "{{ package_manifest | combine({
+            'cli_tools': (package_manifest.cli_tools | rejectattr('name', 'in', ['gemini-cli', 'claude-code']) | list),
+            'gui_apps': (package_manifest.gui_apps | rejectattr('name', 'equalto', 'antigravity') | list)
+        }) }}"
+
     - name: Build Homebrew package targets
       set_fact:
         brew_taps: "{{ package_manifest.brew_taps | default([]) }}"

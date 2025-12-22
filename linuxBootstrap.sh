@@ -12,6 +12,13 @@ NC='\033[0m'
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
+SKIP_AI_TOOLS=false
+for arg in "$@"; do
+  if [[ "$arg" == "--skip-ai-tools" ]]; then
+    SKIP_AI_TOOLS=true
+  fi
+done
+
 echo -e "${YELLOW}[$TIMESTAMP] Starting Linux bootstrap script...${NC}" | tee "$LOGFILE"
 
 log_and_run() {
@@ -86,7 +93,8 @@ VARS_FILE=$(mktemp)
 chmod 600 "$VARS_FILE"
 cat <<EOF > "$VARS_FILE"
 {
-  "ansible_become_password": "${SUDO_PASS}"
+  "ansible_become_password": "${SUDO_PASS}",
+  "skip_ai_tools": ${SKIP_AI_TOOLS}
 }
 EOF
 

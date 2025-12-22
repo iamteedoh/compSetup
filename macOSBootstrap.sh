@@ -11,6 +11,13 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+SKIP_AI_TOOLS=false
+for arg in "$@"; do
+  if [[ "$arg" == "--skip-ai-tools" ]]; then
+    SKIP_AI_TOOLS=true
+  fi
+done
+
 echo -e "${YELLOW}[$TIMESTAMP] Starting macOS bootstrap script...${NC}" | tee "$LOGFILE"
 
 ## Prime sudo (caches credentials for other parts)
@@ -160,7 +167,7 @@ if [[ -f "$PLAYBOOK" ]]; then
   fi
 VARS_FILE=$(mktemp -t ansible-vars.XXXXXX)
   chmod 600 "$VARS_FILE"
-printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s"}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" > "$VARS_FILE"
+printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s", "skip_ai_tools": %s}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" "$SKIP_AI_TOOLS" > "$VARS_FILE"
 log_and_run "ansible-playbook $PLAYBOOK --extra-vars @\"$VARS_FILE\""
   rm -f "$VARS_FILE" 2>/dev/null || true
   echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"
