@@ -85,6 +85,11 @@ package_manifest:
       linux:
         type: npm
         package: @anthropic-ai/claude-code
+    - name: gemini-cli
+      brew_formula: gemini-cli
+      linux:
+        type: npm
+        package: @google/gemini-cli
 
   gui_apps:
     - name: cyberduck
