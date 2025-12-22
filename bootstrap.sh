@@ -7,6 +7,17 @@ OS_NAME=$(uname -s)
 
 SKIP_AI_TOOLS=false
 
+# Helper function to print help message
+show_help() {
+    echo "Usage: $0 [OPTIONS]"
+    echo
+    echo "Options:"
+    echo "  -h, --help          Show this help message and exit"
+    echo "  --skip-ai-tools     Skip installation of AI tools (gemini-cli, claude-cli, antigravity)"
+    echo
+    echo "If no options are provided, an interactive menu will be shown."
+}
+
 # Helper function to print usage or interactive menu
 print_menu() {
     echo "AI Tools Installation Options:"
@@ -20,6 +31,10 @@ print_menu() {
 if [[ $# -gt 0 ]]; then
     for arg in "$@"; do
         case $arg in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
             --skip-ai-tools)
                 SKIP_AI_TOOLS=true
                 ;;
