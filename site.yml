@@ -46,6 +46,20 @@
             'gui_apps': (package_manifest.gui_apps | rejectattr('name', 'equalto', 'antigravity') | list)
         }) }}"
 
+    - name: Parse omit list
+      set_fact:
+        omit_list: "{{ (omit_list_str | default('')) | split(' ') | reject('equalto', '') | list }}"
+
+    - name: Filter packages based on omit list
+      when: omit_list | length > 0
+      set_fact:
+        package_manifest: "{{ package_manifest | combine({
+            'cli_tools': (package_manifest.cli_tools | rejectattr('name', 'in', omit_list) | list),
+            'gui_apps': (package_manifest.gui_apps | rejectattr('name', 'in', omit_list) | list),
+            'flatpak_apps': (package_manifest.flatpak_apps | reject('in', omit_list) | list),
+            'vscode_extensions': (package_manifest.vscode_extensions | reject('in', omit_list) | list)
+        }) }}"
+
     - name: Build Homebrew package targets
       set_fact:
         brew_taps: "{{ package_manifest.brew_taps | default([]) }}"
@@ -104,9 +118,11 @@
     - role: brewPackages
       when: ansible_system == 'Darwin'
     - role: aptPackages
-      when: ansible_system == 'Linux'
+      when: ansible_os_family == 'Debian'
+    - role: rpmPackages
+      when: ansible_os_family == 'RedHat'
     - role: apt_upgrade_report
-      when: ansible_system == 'Linux'
+      when: ansible_os_family == 'Debian'
     - role: ohmyzsh
     - role: powerlevel10k
     - role: nvchad
@@ -115,5 +131,6 @@
       when: install_vscode_extensions | bool
     - role: davinci_resolve
       tags: ['davinci_resolve']
+      when: install_davinci | default(false) | bool
     - role: iterm2
       when: ansible_system == 'Darwin'

@@ -1,6 +1,6 @@
-# Cross-Platform Computer Setup (macOS + Ubuntu/Pop!_OS)
+# Cross-Platform Computer Setup (macOS + Ubuntu/Pop!_OS + Fedora/RPM)
 
-Automate opinionated workstation setup with Ansible. This project provisions platform-appropriate package managers (Homebrew on macOS, apt on Ubuntu/Pop!_OS), optional VS Code extensions, Oh My Zsh, the Powerlevel10k prompt, and the fonts required for beautiful glyphs. It is idempotent and optimized for Apple Silicon (with graceful Intel fallbacks where needed) and Ubuntu/Pop!_OS (including Cosmic desktop specific tooling).
+Automate opinionated workstation setup with Ansible. This project provisions platform-appropriate package managers (Homebrew on macOS, apt on Ubuntu/Pop!_OS, dnf on Fedora/RPM), optional VS Code extensions, Oh My Zsh, the Powerlevel10k prompt, and the fonts required for beautiful glyphs. It is idempotent and optimized for Apple Silicon (with graceful Intel fallbacks where needed) and Linux desktops (GNOME/Cosmic).
 
 ## Getting Started (Fresh Install)
 
@@ -24,6 +24,11 @@ Follow the prompts to install the "Command Line Developer Tools".
 ```bash
 sudo apt update
 sudo apt install -y git curl
+```
+
+**Fedora / RPM**:
+```bash
+sudo dnf install -y git curl
 ```
 
 ### 3. Download and Run
@@ -53,81 +58,103 @@ Run the bootstrap script from the repo root:
 ./bootstrap.sh
 ```
 
-### AI Tools Installation
-When you run the script, an **interactive menu** will ask if you want to install AI tools (Gemini CLI, Claude Code, Antigravity).
-- **Option 1**: Install everything.
-- **Option 2**: Install everything **EXCEPT** AI tools.
-- **Option 3**: Exit.
+### Interactive Menu & Flags
+When you run the script, an **interactive menu** will guide you. You can also use flags to skip the menu or customize the install:
 
-**Skip the menu**:
-You can skip the interactive menu and automatically skip AI tools by using the `--skip-ai-tools` flag:
 ```bash
+# Skip AI tools (Gemini, Claude, Antigravity)
 ./bootstrap.sh --skip-ai-tools
+
+# Skip VS Code Extensions
+./bootstrap.sh --skip-vscode-extensions
+
+# Install DaVinci Resolve dependencies (Linux only)
+./bootstrap.sh --install-davinci
+
+# Omit specific packages (space-separated list)
+./bootstrap.sh --omit "google-chrome cyberduck"
+
+# Combine flags
+./bootstrap.sh --skip-ai-tools --skip-vscode-extensions
 ```
 
-**Help**:
-View all available options:
-```bash
-./bootstrap.sh --help
-```
+### Omit / Blacklist Packages
+You can persistently blacklist packages you never want to install.
+- Using `--omit "pkg1 pkg2"` creates or updates a `.install_blacklist` file in the repo.
+- If this file exists, future runs will automatically skip the listed packages.
+- Example: `./bootstrap.sh --omit "google-chrome"` will add Chrome to the blacklist and skip it.
 
-### Optional Roles
-You can invoke specific roles using tags. For example, to install DaVinci Resolve dependencies on Pop!_OS:
-```bash
-ANSIBLE_TAGS=davinci_resolve ./bootstrap.sh
-```
+## Supported Tools
+
+### CLI Tools
+- `ansible`, `git`, `curl`, `wget`, `unzip`, `gnupg`, `htop`
+- `neovim` (configured with NVChad), `python3`, `node`, `ruby`
+- `ripgrep`, `fd`, `bat`, `lsd` (modern replacements for grep, find, cat, ls)
+- `ffmpeg`, `graphviz`, `ncdu`, `trash-cli`, `watch`, `wakeonlan`
+- **AI Tools**: `gemini-cli` (@google/gemini-cli), `claude-code` (@anthropic-ai/claude-code)
+
+### GUI Applications
+- **Browsers**: `google-chrome`, `brave`, `firefox` (via system default)
+- **Editors**: `visual-studio-code` (with extensions), `typora`, `ghostty`
+- **Productivity**: `obsidian`, `joplin`, `standardnotes`, `proton-mail`, `proton-pass`
+- **Media**: `vlc`, `handbrake`, `gimp`, `obs-studio`, `davinci-resolve` (deps)
+- **Comm**: `signal-desktop`, `discord`, `slack`, `element` (riot), `session`
+- **Dev/Ops**: `docker`, `podman-desktop`, `minikube`, `helm`, `cyberduck`
+
+### Fonts
+- **Default**: `0xProto Nerd Font`
+- **Extras**: `FiraCode Nerd Font`, `FiraMono Nerd Font`
+
+### VS Code Extensions
+- GitHub Copilot & Chat
+- Language support: Python (Pylance), Go, Rust (rust-analyzer), Ansible, YAML
+- Docker, Kubernetes tools
+- Vim keybindings
 
 ## What this does
 
 - **Package Management**:
   - **macOS**: Installs Homebrew, taps, casks, and formulae. Detects Apple Silicon vs Intel.
-  - **Linux**: Installs apt packages, adds repositories (NodeSource, Signal, etc.), and Flatpaks.
+  - **Linux (Debian/Ubuntu/Pop)**: Installs apt packages, adds repositories (NodeSource, Signal, etc.), and Flatpaks.
+  - **Linux (Fedora/RPM)**: Installs dnf packages and Flatpaks.
 - **Shell Customization**:
   - Installs Oh My Zsh (if missing).
   - Installs Powerlevel10k theme and configures it.
-- **Fonts**:
-  - Installs Nerd Fonts (0xProto, Fira Code, Fira Mono) for proper glyph rendering.
 - **Neovim (NVChad)**:
   - Bootstraps NVChad with custom configuration.
   - Installs GitHub Copilot for Neovim.
-- **Apps**:
-  - Installs VS Code and extensions.
-  - Installs GUI apps (Signal, etc.) and CLI tools.
 
 ## Idempotency and Performance
 
 This project is designed to be **idempotent**, meaning you can run it multiple times without breaking anything. It respects your existing setup:
 - **Downloads**: Large files (fonts, keys) are only downloaded if missing.
-- **Repositories**: `apt-get update` is only run if a new repository is added or if the cache is old.
-- **Packages**:
-  - Homebrew casks/formulae are installed only if missing.
-  - Apt packages are checked against the current state.
-- **Configs**: Configuration files are created or updated only if necessary.
+- **Repositories**: Cache is updated only if repositories change.
+- **Packages**: Only missing items are installed.
+- **Blacklist**: Respects your `.install_blacklist` file.
 
 ## Post-run steps
 
-1. **Fonts**: Set your terminal’s font to `0xProto Nerd Font Mono` (or FiraCode) in your terminal preferences.
-2. **Shell**: Open a new terminal tab or run `exec zsh` to load the new shell.
+1. **Fonts**: Set your terminal’s font to `0xProto Nerd Font Mono` (or FiraCode).
+2. **Shell**: Open a new terminal tab or run `exec zsh`.
 3. **GitHub Copilot**:
    - Open Neovim (`nvim`).
-   - Run `:Copilot setup` and follow the browser authentication steps.
+   - Run `:Copilot setup` and authenticate.
 4. **Powerlevel10k**:
-   - Run `p10k_setup.py` if you want to re-configure the prompt style.
+   - Run `p10k_setup.py` if needed.
 
 ## Troubleshooting
 
-- **Password Prompt**: If asked for a password again, it means the cached credentials expired. The script tries to keep them alive.
-- **Fonts**: If icons look weird, ensure your terminal is using a "Nerd Font".
-- **VS Code**: Extensions install only if VS Code CLI (`code`) is found in your PATH.
+- **Password Prompt**: If asked for a password again, the cached sudo session expired.
+- **RPM Support**: On Fedora/RPM systems, some apt-specific packages might be skipped if the name differs significantly, but standard tools (git, neovim, etc.) and Flatpaks will install.
 
 ## Project layout
 
 - `bootstrap.sh`: Main entry point (interactive menu + flags).
-- `linuxBootstrap.sh` / `macOSBootstrap.sh`: OS-specific logic.
 - `site.yml`: Main Ansible playbook.
-- `packages.yml`: List of all packages to install.
-- `roles/`: Ansible roles for specific components (zsh, neovim, etc.).
+- `packages.yml`: List of all packages.
+- `roles/aptPackages`: Debian/Ubuntu specific logic.
+- `roles/rpmPackages`: Fedora/RPM specific logic.
 
 ## License
 
-This project is provided under the GNU General Public License v3.0. See [LICENSE](LICENSE).
+GNU General Public License v3.0. See [LICENSE](LICENSE).

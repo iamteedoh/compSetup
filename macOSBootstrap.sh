@@ -12,10 +12,32 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 SKIP_AI_TOOLS=false
-for arg in "$@"; do
-  if [[ "$arg" == "--skip-ai-tools" ]]; then
-    SKIP_AI_TOOLS=true
-  fi
+INSTALL_DAVINCI=false
+SKIP_VSCODE=false
+OMIT_LIST=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-ai-tools)
+      SKIP_AI_TOOLS=true
+      shift
+      ;;
+    --install-davinci)
+      INSTALL_DAVINCI=true
+      shift
+      ;;
+    --skip-vscode-extensions)
+      SKIP_VSCODE=true
+      shift
+      ;;
+    --omit-list)
+      OMIT_LIST="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
 done
 
 echo -e "${YELLOW}[$TIMESTAMP] Starting macOS bootstrap script...${NC}" | tee "$LOGFILE"
@@ -148,7 +170,10 @@ log_and_run "ansible-galaxy collection install community.general"
 
 ## VS Code check (used as a fact for the role)
 echo "== Reached: VS Code check section ==" | tee -a "$LOGFILE"
-if [[ -d "/Applications/Visual Studio Code.app" ]] || command -v code &> /dev/null; then
+if [[ "$SKIP_VSCODE" == "true" ]]; then
+  export INSTALL_VSCODE_EXTENSIONS=false
+  echo -e "${YELLOW}Skipping VS Code extensions as requested via flag.${NC}" | tee -a "$LOGFILE"
+elif [[ -d "/Applications/Visual Studio Code.app" ]] || command -v code &> /dev/null; then
   export INSTALL_VSCODE_EXTENSIONS=true
   echo -e "${GREEN}Visual Studio Code is installed. VS Code extensions will be installed.${NC}" | tee -a "$LOGFILE"
 else
@@ -167,7 +192,7 @@ if [[ -f "$PLAYBOOK" ]]; then
   fi
 VARS_FILE=$(mktemp -t ansible-vars.XXXXXX)
   chmod 600 "$VARS_FILE"
-printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s", "skip_ai_tools": %s}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" "$SKIP_AI_TOOLS" > "$VARS_FILE"
+printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s", "skip_ai_tools": %s, "install_davinci": %s, "omit_list_str": "%s"}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" "$SKIP_AI_TOOLS" "$INSTALL_DAVINCI" "$OMIT_LIST" > "$VARS_FILE"
 log_and_run "ansible-playbook $PLAYBOOK --extra-vars @\"$VARS_FILE\""
   rm -f "$VARS_FILE" 2>/dev/null || true
   echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"

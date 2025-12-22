@@ -13,10 +13,32 @@ NC='\033[0m'
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 SKIP_AI_TOOLS=false
-for arg in "$@"; do
-  if [[ "$arg" == "--skip-ai-tools" ]]; then
-    SKIP_AI_TOOLS=true
-  fi
+INSTALL_DAVINCI=false
+SKIP_VSCODE=false
+OMIT_LIST=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-ai-tools)
+      SKIP_AI_TOOLS=true
+      shift
+      ;;
+    --install-davinci)
+      INSTALL_DAVINCI=true
+      shift
+      ;;
+    --skip-vscode-extensions)
+      SKIP_VSCODE=true
+      shift
+      ;;
+    --omit-list)
+      OMIT_LIST="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
 done
 
 echo -e "${YELLOW}[$TIMESTAMP] Starting Linux bootstrap script...${NC}" | tee "$LOGFILE"
@@ -70,20 +92,44 @@ fi
 SUDO_KEEPALIVE_PID=$!
 trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
 
+# Detect Package Manager
+PKG_MGR=""
+if command -v dnf >/dev/null; then
+    PKG_MGR="dnf"
+elif command -v apt-get >/dev/null; then
+    PKG_MGR="apt-get"
+else
+    echo -e "${RED}Unsupported package manager. Only apt and dnf are supported.${NC}" | tee -a "$LOGFILE"
+    exit 1
+fi
+
 ensure_package() {
   local pkg="$1"
-  if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-    sudo_log_and_run apt-get install -y "$pkg"
+  if [ "$PKG_MGR" == "apt-get" ]; then
+      if ! dpkg -s "$pkg" >/dev/null 2>&1; then
+        sudo_log_and_run apt-get install -y "$pkg"
+      fi
+  elif [ "$PKG_MGR" == "dnf" ]; then
+      if ! rpm -q "$pkg" >/dev/null 2>&1; then
+        sudo_log_and_run dnf install -y "$pkg"
+      fi
   fi
 }
 
-echo -e "${YELLOW}Refreshing apt cache...${NC}" | tee -a "$LOGFILE"
-sudo_log_and_run apt-get update
+echo -e "${YELLOW}Refreshing package cache...${NC}" | tee -a "$LOGFILE"
+if [ "$PKG_MGR" == "apt-get" ]; then
+    sudo_log_and_run apt-get update
+elif [ "$PKG_MGR" == "dnf" ]; then
+    sudo_log_and_run dnf makecache
+fi
 
 ensure_package git
 ensure_package curl
 ensure_package python3
-ensure_package python3-venv
+# python3-venv is often part of python3 on Fedora, but separate on Debian
+if [ "$PKG_MGR" == "apt-get" ]; then
+    ensure_package python3-venv
+fi
 ensure_package python3-pip
 ensure_package ansible
 
@@ -94,7 +140,10 @@ chmod 600 "$VARS_FILE"
 cat <<EOF > "$VARS_FILE"
 {
   "ansible_become_password": "${SUDO_PASS}",
-  "skip_ai_tools": ${SKIP_AI_TOOLS}
+  "skip_ai_tools": ${SKIP_AI_TOOLS},
+  "install_davinci": ${INSTALL_DAVINCI},
+  "skip_vscode_extensions": ${SKIP_VSCODE},
+  "omit_list_str": "${OMIT_LIST}"
 }
 EOF
 
