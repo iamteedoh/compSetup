@@ -136,6 +136,41 @@
         update_cache: true
       changed_when: false
 
+- name: Configure Antigravity repository
+  when:
+    - ansible_system == 'Linux'
+    - signal_linux_packages | select('equalto', 'antigravity') | list | length > 0
+  block:
+    - name: Download Antigravity signing key
+      ansible.builtin.get_url:
+        url: https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg
+        dest: /tmp/antigravity_key.gpg
+        mode: "0644"
+
+    - name: Install Antigravity signing key
+      become: true
+      ansible.builtin.command: gpg --dearmor --yes --output /usr/share/keyrings/antigravity-repo-key.gpg /tmp/antigravity_key.gpg
+      args:
+        creates: /usr/share/keyrings/antigravity-repo-key.gpg
+
+    - name: Remove temporary Antigravity key
+      ansible.builtin.file:
+        path: /tmp/antigravity_key.gpg
+        state: absent
+
+    - name: Add Antigravity repository
+      become: true
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main"
+        filename: antigravity
+        state: present
+
+    - name: Refresh apt cache after adding Antigravity repo
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+      changed_when: false
+
 - name: Install Nerd Fonts on Linux
   when:
     - ansible_system == 'Linux'
@@ -278,37 +313,3 @@
   when:
     - ansible_system == 'Linux'
 
-- name: Configure Antigravity repository
-  when:
-    - ansible_system == 'Linux'
-    - signal_linux_packages | select('equalto', 'antigravity') | list | length > 0
-  block:
-    - name: Download Antigravity signing key
-      ansible.builtin.get_url:
-        url: https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg
-        dest: /tmp/antigravity_key.gpg
-        mode: "0644"
-
-    - name: Install Antigravity signing key
-      become: true
-      ansible.builtin.command: gpg --dearmor --yes --output /usr/share/keyrings/antigravity-repo-key.gpg /tmp/antigravity_key.gpg
-      args:
-        creates: /usr/share/keyrings/antigravity-repo-key.gpg
-
-    - name: Remove temporary Antigravity key
-      ansible.builtin.file:
-        path: /tmp/antigravity_key.gpg
-        state: absent
-
-    - name: Add Antigravity repository
-      become: true
-      ansible.builtin.apt_repository:
-        repo: "deb [signed-by=/usr/share/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main"
-        filename: antigravity
-        state: present
-
-    - name: Refresh apt cache after adding Antigravity repo
-      become: true
-      ansible.builtin.apt:
-        update_cache: true
-      changed_when: false
