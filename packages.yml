@@ -84,12 +84,12 @@ package_manifest:
       brew_cask: claude-code
       linux:
         type: npm
-        package: @anthropic-ai/claude-code
+        package: "@anthropic-ai/claude-code"
     - name: gemini-cli
       brew_formula: gemini-cli
       linux:
         type: npm
-        package: @google/gemini-cli
+        package: "@google/gemini-cli"
 
   gui_apps:
     - name: cyberduck
