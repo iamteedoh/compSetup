@@ -114,6 +114,10 @@ package_manifest:
       linux:
         type: apt
         package: signal-desktop
+    - name: antigravity
+      brew_cask: antigravity
+      linux:
+        package: antigravity
 
   fonts:
     - name: font-0xproto-nerd-font
