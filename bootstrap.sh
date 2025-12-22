@@ -24,6 +24,7 @@ DIM="${ESC}[2m"
 RED="${ESC}[31m"
 GREEN="${ESC}[32m"
 YELLOW="${ESC}[33m"
+ORANGE="${ESC}[38;5;214m"
 BLUE="${ESC}[34m"
 MAGENTA="${ESC}[35m"
 CYAN="${ESC}[36m"
@@ -138,8 +139,10 @@ edit_blacklist() {
     echo ""
     if [[ ! -f "$BLACKLIST_FILE" ]]; then
         touch "$BLACKLIST_FILE"
-        echo -e "  ${GREEN}Created new blacklist file at ${BLACKLIST_FILE}${RESET}"
+        echo ""
+        echo -e "  ${GREEN}${ICON_CHECK} Created new blacklist file at ${RESET}${BOLD}${BLACKLIST_FILE}${RESET}"
         echo -e "  ${DIM}This file tracks packages you want to persistently omit.${RESET}"
+        echo ""
         sleep 2
     fi
     
@@ -166,8 +169,10 @@ run_installation() {
     if [[ -n "$OMIT_LIST" ]]; then ARGS+=("--omit-list" "$OMIT_LIST"); fi
 
     draw_header
+    echo ""
     echo -e "${YELLOW}  ${ICON_PKG} Starting Installation...${RESET}"
     echo -e "  ${DIM}Arguments: ${ARGS[*]}${RESET}"
+    echo ""
     draw_line "═"
     echo ""
     
@@ -188,11 +193,13 @@ run_installation() {
     
     echo ""
     draw_line "═"
+    echo ""
     if [[ $EXIT_CODE -eq 0 ]]; then
         echo -e "  ${GREEN}${ICON_CHECK} Installation Completed Successfully!${RESET}"
     else
         echo -e "  ${RED}${ICON_WARN} Installation Failed (Exit Code: $EXIT_CODE)${RESET}"
     fi
+    echo ""
     echo -e "  ${DIM}Press Enter to return to menu...${RESET}"
     read -r
 }
@@ -215,15 +222,18 @@ if [[ $# -gt 0 ]]; then
                 
                 if [[ ! -f "$BLACKLIST_FILE" ]]; then
                     touch "$BLACKLIST_FILE"
-                    echo -e "${GREEN}Created blacklist file at ${BLACKLIST_FILE}${RESET}"
+                    echo ""
+                    echo -e "${GREEN}${ICON_CHECK} Created blacklist file at ${RESET}${BOLD}${BLACKLIST_FILE}${RESET}"
+                    echo ""
                 fi
                 
                 for pkg in $PACKAGES_TO_OMIT; do
                     if ! grep -q "^$pkg$" "$BLACKLIST_FILE"; then
                         echo "$pkg" >> "$BLACKLIST_FILE"
-                        echo -e "${YELLOW}Added '$pkg' to blacklist.${RESET}"
+                        echo -e "${ORANGE}Added '$pkg' to blacklist.${RESET}"
                     fi
                 done
+                echo ""
                 ;;
             *)
                 PASSTHROUGH_ARGS+=("$1")
