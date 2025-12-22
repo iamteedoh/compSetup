@@ -23,6 +23,41 @@
     - ansible_system == 'Linux'
     - (detected_distribution | default(ansible_distribution | lower | regex_replace('[^a-z0-9_]+', '_'))) in ['ubuntu', 'pop_os']
 
+- name: Configure NodeSource Node.js 20.x repository
+  when:
+    - ansible_system == 'Linux'
+  block:
+    - name: Download NodeSource signing key
+      ansible.builtin.get_url:
+        url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
+        dest: /tmp/nodesource.gpg.key
+        mode: "0644"
+
+    - name: Install NodeSource signing key
+      become: true
+      ansible.builtin.command: gpg --dearmor --yes --output /usr/share/keyrings/nodesource.gpg /tmp/nodesource.gpg.key
+      args:
+        creates: /usr/share/keyrings/nodesource.gpg
+
+    - name: Remove temporary NodeSource key
+      ansible.builtin.file:
+        path: /tmp/nodesource.gpg.key
+        state: absent
+
+    - name: Add NodeSource repository
+      become: true
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main"
+        filename: nodesource
+        state: present
+
+    - name: Ensure Node.js is upgraded to latest version (v20+)
+      become: true
+      ansible.builtin.apt:
+        name: nodejs
+        state: latest
+        update_cache: true
+
 - name: Update apt cache if Neovim PPA changed
   become: true
   ansible.builtin.apt:
