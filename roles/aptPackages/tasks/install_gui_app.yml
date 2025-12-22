@@ -14,7 +14,6 @@
   ansible.builtin.apt:
     name: "{{ gui_app.linux.package }}"
     state: latest
-    update_cache: true
   register: gui_app_apt_install
 
 - name: Download {{ gui_app.name }} deb package

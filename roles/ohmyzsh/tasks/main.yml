@@ -12,7 +12,6 @@
   ansible.builtin.apt:
     name: zsh
     state: present
-    update_cache: true
   when: ansible_system == 'Linux'
 
 # tasks file for installOhMyZSH

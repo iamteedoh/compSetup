@@ -27,22 +27,28 @@
   when:
     - ansible_system == 'Linux'
   block:
+    - name: Check if NodeSource keyring exists
+      stat:
+        path: /usr/share/keyrings/nodesource.gpg
+      register: nodesource_keyring
+
     - name: Download NodeSource signing key
       ansible.builtin.get_url:
         url: https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key
         dest: /tmp/nodesource.gpg.key
         mode: "0644"
+      when: not nodesource_keyring.stat.exists
 
     - name: Install NodeSource signing key
       become: true
       ansible.builtin.command: gpg --dearmor --yes --output /usr/share/keyrings/nodesource.gpg /tmp/nodesource.gpg.key
-      args:
-        creates: /usr/share/keyrings/nodesource.gpg
+      when: not nodesource_keyring.stat.exists
 
     - name: Remove temporary NodeSource key
       ansible.builtin.file:
         path: /tmp/nodesource.gpg.key
         state: absent
+      when: not nodesource_keyring.stat.exists
 
     - name: Add NodeSource repository
       become: true
@@ -50,13 +56,19 @@
         repo: "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main"
         filename: nodesource
         state: present
+      register: nodesource_repo
+
+    - name: Refresh apt cache if NodeSource repo changed
+      become: true
+      ansible.builtin.apt:
+        update_cache: true
+      when: nodesource_repo.changed
 
     - name: Ensure Node.js is upgraded to latest version (v20+)
       become: true
       ansible.builtin.apt:
         name: nodejs
         state: latest
-        update_cache: true
 
 - name: Update apt cache if Neovim PPA changed
   become: true
@@ -107,6 +119,7 @@
     name: "{{ apt_packages_available | default([]) }}"
     state: present
     update_cache: true
+    cache_valid_time: 3600
   when:
     - apt_packages_available is defined
     - apt_packages_available | length > 0
@@ -164,11 +177,13 @@
         src: signal-desktop.sources.j2
         dest: /etc/apt/sources.list.d/signal-desktop.sources
         mode: "0644"
+      register: signal_repo
 
     - name: Refresh apt cache after adding Signal repo
       become: true
       ansible.builtin.apt:
         update_cache: true
+      when: signal_repo.changed
       changed_when: false
 
 - name: Configure Antigravity repository
@@ -176,22 +191,28 @@
     - ansible_system == 'Linux'
     - signal_linux_packages | select('equalto', 'antigravity') | list | length > 0
   block:
+    - name: Check for existing Antigravity signing key
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/antigravity-repo-key.gpg
+      register: antigravity_key
+
     - name: Download Antigravity signing key
       ansible.builtin.get_url:
         url: https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg
         dest: /tmp/antigravity_key.gpg
         mode: "0644"
+      when: not antigravity_key.stat.exists
 
     - name: Install Antigravity signing key
       become: true
       ansible.builtin.command: gpg --dearmor --yes --output /usr/share/keyrings/antigravity-repo-key.gpg /tmp/antigravity_key.gpg
-      args:
-        creates: /usr/share/keyrings/antigravity-repo-key.gpg
+      when: not antigravity_key.stat.exists
 
     - name: Remove temporary Antigravity key
       ansible.builtin.file:
         path: /tmp/antigravity_key.gpg
         state: absent
+      when: not antigravity_key.stat.exists
 
     - name: Add Antigravity repository
       become: true
@@ -199,11 +220,13 @@
         repo: "deb [signed-by=/usr/share/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main"
         filename: antigravity
         state: present
+      register: antigravity_repo
 
     - name: Refresh apt cache after adding Antigravity repo
       become: true
       ansible.builtin.apt:
         update_cache: true
+      when: antigravity_repo.changed
       changed_when: false
 
 - name: Install Nerd Fonts on Linux
