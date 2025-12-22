@@ -1,0 +1,37 @@
+- name: Determine installed path for {{ gui_app.name }}
+  ansible.builtin.set_fact:
+    current_gui_installed_path: "{{ gui_app.linux.installed_path | default('/usr/bin/' ~ gui_app.name) }}"
+
+- name: Check if {{ gui_app.name }} is already installed
+  ansible.builtin.stat:
+    path: "{{ current_gui_installed_path }}"
+  register: gui_app_stat
+
+- name: Install {{ gui_app.name }} via apt package
+  when:
+    - gui_app.linux.package is defined
+  become: true
+  ansible.builtin.apt:
+    name: "{{ gui_app.linux.package }}"
+    state: latest
+  register: gui_app_apt_install
+
+- name: Download {{ gui_app.name }} deb package
+  when:
+    - gui_app.linux.type | default('') == 'deb'
+    - not gui_app_stat.stat.exists | default(false)
+  ansible.builtin.get_url:
+    url: "{{ gui_app.linux.url }}"
+    dest: "/tmp/{{ gui_app.name }}.deb"
+    mode: "0644"
+
+- name: Install {{ gui_app.name }} deb package
+  when:
+    - gui_app.linux.type | default('') == 'deb'
+    - not gui_app_stat.stat.exists | default(false)
+  become: true
+  ansible.builtin.apt:
+    deb: "/tmp/{{ gui_app.name }}.deb"
+    state: present
+  register: gui_app_deb_install
+

@@ -1,0 +1,12 @@
+- name: Check if Flatpak application {{ flatpak_app }} is installed
+  become: true
+  ansible.builtin.command: flatpak info --system {{ flatpak_app }}
+  register: flatpak_info_result
+  changed_when: false
+  failed_when: false
+
+- name: Install Flatpak application {{ flatpak_app }}
+  become: true
+  ansible.builtin.command: flatpak install --system --assumeyes flathub {{ flatpak_app }}
+  when: flatpak_info_result.rc != 0
+

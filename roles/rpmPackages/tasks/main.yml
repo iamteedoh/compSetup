@@ -1,0 +1,148 @@
+---
+- name: Normalize rpm package list
+  set_fact:
+    rpm_packages_resolved: >-
+      {{ (
+            package_manifest.cli_tools | default([])
+            | selectattr('apt', 'defined')
+            | map(attribute='apt')
+            | list
+        )
+        + (package_manifest.apt_only.common | default([]))
+        | unique }}
+
+- name: Install RPM packages
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ rpm_packages_resolved | default([]) }}"
+    state: present
+  when: rpm_packages_resolved | length > 0
+
+- name: Install Nerd Fonts
+  when: package_manifest.fonts | default([]) | length > 0
+  vars:
+    linux_fonts: >-
+      {{ package_manifest.fonts | selectattr('linux', 'defined') | list }}
+  block:
+    - name: Initialize font cache refresh flag
+      ansible.builtin.set_fact:
+        font_cache_refresh_required: false
+
+    - name: Process Nerd Fonts
+      ansible.builtin.include_tasks: install_font.yml
+      loop: "{{ linux_fonts }}"
+      loop_control:
+        loop_var: font_item
+        label: "{{ font_item.name }}"
+
+    - name: Rebuild font cache if fonts changed
+      ansible.builtin.command: fc-cache -f
+      when: font_cache_refresh_required | default(false)
+      changed_when: true
+
+- name: Install Linux GUI applications
+  ansible.builtin.include_tasks: install_rpm_gui_app.yml
+  loop: "{{ package_manifest.gui_apps | default([]) | selectattr('linux', 'defined') | list }}"
+  loop_control:
+    loop_var: gui_app
+    label: "{{ gui_app.name }}"
+
+- name: Configure Flatpak
+  block:
+    - name: Add Flatpak Flathub remote
+      become: true
+      community.general.flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+        method: system
+
+    - name: Install Flatpak applications
+      ansible.builtin.include_tasks: install_flatpak_app.yml
+      loop: "{{ package_manifest.flatpak_apps | default([]) }}"
+      loop_control:
+        loop_var: flatpak_app
+        label: "{{ flatpak_app }}"
+
+- name: Install Linux CLI extras
+  block:
+    - name: Collect gem-based CLI tools
+      set_fact:
+        linux_gem_tools: >-
+          {{ package_manifest.cli_tools | default([])
+             | selectattr('linux', 'defined')
+             | selectattr('linux.type', 'defined')
+             | selectattr('linux.type', 'equalto', 'gem')
+             | list }}
+
+    - name: Install CLI tool via gem
+      become: true
+      community.general.gem:
+        name: "{{ item.linux.package }}"
+        state: present
+      loop: "{{ linux_gem_tools }}"
+      loop_control:
+        label: "{{ item.linux.package }}"
+      when: linux_gem_tools | length > 0
+
+    - name: Determine gem executable directory
+      command: ruby -e 'require "rubygems"; print Gem.bindir'
+      register: gem_bindir
+      changed_when: false
+      when: linux_gem_tools | length > 0
+
+    - name: Stat gem binaries
+      ansible.builtin.stat:
+        path: "{{ gem_bindir.stdout }}/{{ item.linux.package }}"
+      loop: "{{ linux_gem_tools }}"
+      loop_control:
+        label: "{{ item.linux.package }}"
+      register: gem_binary_stats
+      when:
+        - linux_gem_tools | length > 0
+        - gem_bindir.stdout is defined
+        - gem_bindir.stdout != ''
+
+    - name: Ensure gem binaries are on PATH
+      become: true
+      ansible.builtin.file:
+        src: "{{ item.stat.path }}"
+        dest: "/usr/local/bin/{{ item.item.linux.executable | default(item.item.linux.package) }}"
+        state: link
+        force: true
+      loop: "{{ gem_binary_stats.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.linux.package }}"
+      when:
+        - item.stat.exists | default(false)
+        - item.stat.isreg | default(false)
+
+    - name: Ensure PATH includes gem bindir
+      ansible.builtin.blockinfile:
+        path: "{{ ansible_env.HOME }}/.bashrc"
+        marker: "# {mark} gem path"
+        block: |
+          export PATH={{ gem_bindir.stdout | default('/usr/local/bin') }}:$PATH
+      when:
+        - gem_bindir.stdout is defined
+        - gem_bindir.stdout != ''
+
+    - name: Collect npm-based CLI tools
+      set_fact:
+        linux_npm_tools: >-
+          {{ package_manifest.cli_tools | default([])
+             | selectattr('linux', 'defined')
+             | selectattr('linux.type', 'defined')
+             | selectattr('linux.type', 'equalto', 'npm')
+             | list }}
+
+    - name: Install CLI tool via npm
+      become: true
+      community.general.npm:
+        name: "{{ item.linux.package }}"
+        global: true
+        state: present
+      loop: "{{ linux_npm_tools }}"
+      loop_control:
+        label: "{{ item.linux.package }}"
+      when: linux_npm_tools | length > 0
