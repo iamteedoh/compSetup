@@ -172,7 +172,7 @@ run_installation() {
     draw_header
     echo ""
     echo -e "${YELLOW}  ${ICON_PKG} Starting Installation...${RESET}"
-    echo -e "  ${DIM}Arguments: ${ARGS[*]}${RESET}"
+    echo -e "  ${DIM}Arguments: ${ARGS[*]:-}${RESET}"
     echo ""
     draw_line "═"
     echo ""
@@ -180,10 +180,10 @@ run_installation() {
     # Run the OS specific script
     case "$OS_NAME" in
       Darwin)
-        "$SCRIPT_DIR/macOSBootstrap.sh" "${ARGS[@]}"
+        "$SCRIPT_DIR/macOSBootstrap.sh" "${ARGS[@]:-}"
         ;;
       Linux)
-        "$SCRIPT_DIR/linuxBootstrap.sh" "${ARGS[@]}"
+        "$SCRIPT_DIR/linuxBootstrap.sh" "${ARGS[@]:-}"
         ;;
       *)
         echo -e "${RED}Unsupported OS: $OS_NAME${RESET}"
@@ -258,10 +258,10 @@ if [[ $# -gt 0 ]]; then
     # Simple pass-through wrapper logic for headless
     case "$OS_NAME" in
       Darwin)
-        exec "$SCRIPT_DIR/macOSBootstrap.sh" "${PASSTHROUGH_ARGS[@]}"
+        exec "$SCRIPT_DIR/macOSBootstrap.sh" "${PASSTHROUGH_ARGS[@]:-}"
         ;;
       Linux)
-        exec "$SCRIPT_DIR/linuxBootstrap.sh" "${PASSTHROUGH_ARGS[@]}"
+        exec "$SCRIPT_DIR/linuxBootstrap.sh" "${PASSTHROUGH_ARGS[@]:-}"
         ;;
       *)
         echo "Unsupported OS"
