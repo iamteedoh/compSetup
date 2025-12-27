@@ -1,6 +1,6 @@
 ---
 - name: Install apt-upgrade-report helper
-  when: ansible_system == 'Linux'
+  when: ansible_facts['system'] == 'Linux'
   become: true
   ansible.builtin.template:
     src: apt-upgrade-report.j2

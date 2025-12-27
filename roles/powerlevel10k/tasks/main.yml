@@ -42,23 +42,23 @@
 
 - name: Set Homebrew prefix for Powerlevel10k
   ansible.builtin.set_fact:
-    p10k_prefix: "{{ '/opt/homebrew' if (ansible_system == 'Darwin' and (ansible_machine in ['arm64','aarch64'] or (opt_brew.stat.exists | default(false)))) else '/usr/local' }}"
+    p10k_prefix: "{{ '/opt/homebrew' if (ansible_facts['system'] == 'Darwin' and (ansible_facts['machine'] in ['arm64','aarch64'] or (opt_brew.stat.exists | default(false)))) else '/usr/local' }}"
 
 - name: Compute Powerlevel10k destination paths
   ansible.builtin.set_fact:
     p10k_default_dest: "{{ p10k_prefix }}/share/p10k_default.zsh"
     p10k_script_dest_effective: "{{ p10k_script_dest | default(p10k_prefix + '/bin/p10k_setup.py') }}"
     p10k_brew_env:
-      PATH: "{{ p10k_prefix }}/bin:{{ p10k_prefix }}/sbin:{{ ansible_env.PATH }}"
+      PATH: "{{ p10k_prefix }}/bin:{{ p10k_prefix }}/sbin:{{ ansible_facts['env']['PATH'] }}"
 
 - name: Determine owner and group for helper file
   ansible.builtin.set_fact:
-    p10k_owner: "{{ ansible_env.USER | default(ansible_user_id) }}"
-    p10k_group: "{{ ansible_user_gid | default(ansible_env.USER) }}"
+    p10k_owner: "{{ ansible_facts['env']['USER'] | default(ansible_facts['user_id']) }}"
+    p10k_group: "{{ ansible_facts['user_gid'] | default(ansible_facts['env']['USER']) }}"
 
 - name: Ensure Oh My Zsh is installed
   ansible.builtin.stat:
-    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+    path: "{{ ansible_facts['env']['HOME'] }}/.oh-my-zsh"
   register: ohmyzsh_dir
 
 - name: Install Oh My Zsh (non-interactive)
@@ -67,13 +67,13 @@
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
   args:
     executable: /bin/zsh
-    chdir: "{{ ansible_env.HOME }}"
+    chdir: "{{ ansible_facts['env']['HOME'] }}"
   when: (p10k_install_ohmyzsh_if_missing | default(true)) and (not ohmyzsh_dir.stat.exists)
 
 - name: Clone Powerlevel10k (if not present)
   ansible.builtin.git:
     repo: "https://github.com/romkatv/powerlevel10k.git"
-    dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/themes/powerlevel10k"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.oh-my-zsh/custom/themes/powerlevel10k"
     version: master
     update: no
 
@@ -83,8 +83,9 @@
     state: present
   environment: "{{ p10k_brew_env }}"
   when:
-    - ansible_system == 'Darwin'
+    - ansible_facts['system'] == 'Darwin'
     - (p10k_install_fonts | default(true)) | bool
+  failed_when: false
 
 - name: Install Fira fonts (optional)
   community.general.homebrew_cask:
@@ -92,9 +93,10 @@
     state: present
   environment: "{{ p10k_brew_env }}"
   when:
-    - ansible_system == 'Darwin'
+    - ansible_facts['system'] == 'Darwin'
     - (p10k_install_fonts | default(true)) | bool
     - (p10k_install_fira_fonts | default(true)) | bool
+  failed_when: false
   loop: "{{ p10k_fira_font_casks | default(['font-fira-code-nerd-font','font-fira-mono-nerd-font']) }}"
 
 - name: Install additional Nerd Fonts (optional)
@@ -103,13 +105,14 @@
     state: present
   environment: "{{ p10k_brew_env }}"
   when:
-    - ansible_system == 'Darwin'
+    - ansible_facts['system'] == 'Darwin'
     - (p10k_install_fonts | default(true)) | bool
+  failed_when: false
   loop: "{{ p10k_extra_font_casks | default(['font-0xproto-nerd-font']) }}"
 
 - name: Ensure ZSH_THEME is set to powerlevel10k/powerlevel10k
   ansible.builtin.lineinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     regexp: '^ZSH_THEME='
     line: 'ZSH_THEME="powerlevel10k/powerlevel10k"'
     create: yes
@@ -117,7 +120,7 @@
 
 - name: Ensure ~/.p10k.zsh, if present, is sourced by ~/.zshrc
   ansible.builtin.lineinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     insertafter: EOF
     line: '[ -f ~/.p10k.zsh ] && source ~/.p10k.zsh'
     state: present
@@ -191,7 +194,7 @@
     owner: "{{ p10k_owner }}"
     group: "{{ p10k_group }}"
   when:
-    - ansible_system == 'Darwin'
+    - ansible_facts['system'] == 'Darwin'
     - usr_local_bin.stat.exists
     - p10k_script_dest_effective != '/usr/local/bin/p10k_setup.py'
   become: true
@@ -210,13 +213,13 @@
     owner: "{{ p10k_owner }}"
     group: "{{ p10k_group }}"
   when:
-    - ansible_system == 'Darwin'
+    - ansible_facts['system'] == 'Darwin'
     - opt_home_bin.stat.exists
     - p10k_script_dest_effective != '/opt/homebrew/bin/p10k_setup.py'
   become: true
 
 - name: Optionally set zsh as default shell
-  ansible.builtin.command: "chsh -s /bin/zsh {{ ansible_env.USER }}"
+  ansible.builtin.command: "chsh -s /bin/zsh {{ ansible_facts['env']['USER'] }}"
   when: set_zsh_default | default(false)
   become: true
   changed_when: false

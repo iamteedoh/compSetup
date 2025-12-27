@@ -5,40 +5,40 @@
   register: brew_install_zsh
   changed_when: "'Installing' in (brew_install_zsh.stdout | default('')) or brew_install_zsh.rc == 0"
   failed_when: false
-  when: ansible_system == 'Darwin'
+  when: ansible_facts['system'] == 'Darwin'
 
 - name: Ensure zsh is installed on Linux
   become: true
   ansible.builtin.apt:
     name: zsh
     state: present
-  when: ansible_system == 'Linux'
+  when: ansible_facts['system'] == 'Linux'
 
 # tasks file for installOhMyZSH
 
 - name: Check if oh-my-zsh is already installed
   stat:
-    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.vimrc"
   register: ohmyzsh_dir
 
 - name: Install oh-my-zsh if not present
   shell: >-
-    {% if ansible_system == 'Darwin' %}
+    {% if ansible_facts['system'] == 'Darwin' %}
     curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | RUNZSH=no sh
     {% else %}
     RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
     {% endif %}
   args:
-    creates: "{{ ansible_env.HOME }}/.oh-my-zsh"
+    creates: "{{ ansible_facts['env']['HOME'] }}/.oh-my-zsh"
   when: not ohmyzsh_dir.stat.exists
 
 - name: Deploy .zshrc from template (with aliases)
   ansible.builtin.template:
     src: zshrc.j2
-    dest: "{{ ansible_env.HOME }}/.zshrc"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     mode: "0644"
     backup: yes
-    owner: "{{ ansible_env.USER | default(ansible_user_id) }}"
+    owner: "{{ ansible_facts['env']['USER'] | default(ansible_facts['user_id']) }}"
 
 ########################
 # Vim (.vimrc) profile #
@@ -46,17 +46,17 @@
 
 - name: Ensure ~/.vim/tmp exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.vim/tmp"
+    path: "{{ ansible_facts['env']['HOME'] }}/.vim/tmp"
     state: directory
     mode: "0755"
 
 - name: Deploy .vimrc from template
   ansible.builtin.template:
     src: vimrc.j2
-    dest: "{{ ansible_env.HOME }}/.vimrc"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.vimrc"
     mode: "0644"
     backup: yes
-    owner: "{{ ansible_env.USER | default(ansible_user_id) }}"
+    owner: "{{ ansible_facts['env']['USER'] | default(ansible_facts['user_id']) }}"
 
 #############################
 # Optional: colorls install #
@@ -69,7 +69,7 @@
 
 - name: Set Homebrew prefix (ohmyzsh)
   ansible.builtin.set_fact:
-    ohmyzsh_brew_prefix: "{{ '/opt/homebrew' if (ansible_system == 'Darwin' and (ohmyzsh_opt_brew.stat.exists | default(false))) else '/usr/local' }}"
+    ohmyzsh_brew_prefix: "{{ '/opt/homebrew' if (ansible_facts['system'] == 'Darwin' and (ohmyzsh_opt_brew.stat.exists | default(false))) else '/usr/local' }}"
 
 - name: Install ruby via Homebrew for colorls (optional)
   when: (ohmyzsh_install_colorls | default(true)) | bool
@@ -113,16 +113,16 @@
 - name: Set zsh as default shell
   become: true
   ansible.builtin.user:
-    name: "{{ ansible_user_id }}"
+    name: "{{ ansible_facts['user_id'] }}"
     shell: "{{ located_zsh.stdout | default('/bin/zsh') }}"
   when:
     - located_zsh.stdout is defined
     - located_zsh.stdout != ''
-    - (ansible_env.SHELL | default('')) != located_zsh.stdout
+    - (ansible_facts['env']['SHELL'] | default('')) != located_zsh.stdout
 
 - name: Ensure Bash shells hand off to zsh
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.bashrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.bashrc"
     create: true
     mode: "0644"
     marker: "# {mark} auto-exec zsh"

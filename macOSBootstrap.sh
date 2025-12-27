@@ -58,6 +58,7 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done 2>
 # Provide Ansible with the become password via environment (avoids interactive prompts)
 export ANSIBLE_BECOME_PASSWORD="$SUDO_PASS"
 unset SUDO_PASS
+export ANSIBLE_FORCE_COLOR=true
 
 ## Ensure /usr/local/share/zsh is writable by current user
 echo -e "${YELLOW}Ensuring /usr/local/share/zsh is writable...${NC}" | tee -a "$LOGFILE"

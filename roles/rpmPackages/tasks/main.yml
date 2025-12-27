@@ -119,7 +119,7 @@
 
     - name: Ensure PATH includes gem bindir
       ansible.builtin.blockinfile:
-        path: "{{ ansible_env.HOME }}/.bashrc"
+        path: "{{ ansible_facts['env']['HOME'] }}/.bashrc"
         marker: "# {mark} gem path"
         block: |
           export PATH={{ gem_bindir.stdout | default('/usr/local/bin') }}:$PATH

@@ -7,14 +7,14 @@
   register: nvim_install_brew
   changed_when: "'Installing' in (nvim_install_brew.stdout | default('')) or nvim_install_brew.rc == 0"
   failed_when: false
-  when: ansible_system == 'Darwin'
+  when: ansible_facts['system'] == 'Darwin'
 
 - name: Ensure Neovim is installed (Linux)
   become: true
   ansible.builtin.apt:
     name: neovim
     state: present
-  when: ansible_system == 'Linux'
+  when: ansible_facts['system'] == 'Linux'
 
 - name: Gather $HOME
   ansible.builtin.setup:
@@ -23,30 +23,30 @@
 
 - name: Ensure Neovim config directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/nvim"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim"
     state: directory
     mode: "0755"
 
 - name: Check if NVChad is already installed (init.lua)
   ansible.builtin.stat:
-    path: "{{ ansible_env.HOME }}/.config/nvim/init.lua"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/init.lua"
   register: nvim_init
 
 - name: Check if NVChad repo exists (.git)
   ansible.builtin.stat:
-    path: "{{ ansible_env.HOME }}/.config/nvim/.git"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/.git"
   register: nvim_git
 
 - name: Remove stale ~/.config/nvim when NVChad init.lua is missing
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/nvim"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim"
     state: absent
   when: not nvim_init.stat.exists
 
 - name: Clone NVChad (if not present)
   ansible.builtin.git:
     repo: https://github.com/NvChad/starter
-    dest: "{{ ansible_env.HOME }}/.config/nvim"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim"
     version: main
     update: yes
     force: yes
@@ -55,7 +55,7 @@
 
 - name: Ensure vim.uv compatibility alias for older Neovim
   ansible.builtin.blockinfile:
-    path: "{{ ansible_env.HOME }}/.config/nvim/init.lua"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/init.lua"
     insertbefore: '^local lazypath'
     marker: "-- {mark} compat"
     block: |
@@ -65,68 +65,68 @@
 
 - name: Ensure NVChad custom config directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/nvim/lua/custom"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom"
     state: directory
     mode: "0755"
 
 - name: Deploy NVChad custom config (options.lua)
   ansible.builtin.template:
     src: init.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/init.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/init.lua"
     mode: "0644"
 
 - name: Deploy NVChad custom config (chadrc.lua)
   ansible.builtin.template:
     src: chadrc.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/chadrc.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/chadrc.lua"
     mode: "0644"
 
 - name: Deploy NVChad custom plugins (plugins.lua)
   ansible.builtin.template:
     src: plugins.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/plugins.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/plugins.lua"
     mode: "0644"
 
 - name: Deploy NVChad custom mappings (mappings.lua)
   ansible.builtin.template:
     src: mappings.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/mappings.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/mappings.lua"
     mode: "0644"
 
 - name: Deploy NVChad custom options (options.lua)
   ansible.builtin.template:
     src: options.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/options.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/options.lua"
     mode: "0644"
 
 - name: Deploy NVChad custom highlights (highlights.lua)
   ansible.builtin.template:
     src: highlights.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/highlights.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/highlights.lua"
     mode: "0644"
 
 - name: Ensure after/plugin directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/.config/nvim/after/plugin"
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/after/plugin"
     state: directory
     mode: "0755"
 
 - name: Deploy after/plugin cursorline enforcer
   ansible.builtin.template:
     src: after_cursorline.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/after/plugin/cursorline.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/after/plugin/cursorline.lua"
     mode: "0644"
 
 - name: Deploy NVChad custom lsp setup (lsp.lua)
   ansible.builtin.template:
     src: lsp.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/lsp.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/lsp.lua"
     mode: "0644"
 
 - name: Deploy NVChad custom lint setup (lint.lua)
   ansible.builtin.template:
     src: lint.lua.j2
-    dest: "{{ ansible_env.HOME }}/.config/nvim/lua/custom/lint.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/lint.lua"
     mode: "0644"
 
 - name: Ensure NVChad plugins are installed (Lazy sync)
@@ -136,20 +136,20 @@
   args:
     executable: /bin/bash
   environment:
-    PATH: "{{ (ansible_system == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_env.PATH }}"
+    PATH: "{{ (ansible_facts['system'] == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_facts['env']['PATH'] }}"
   changed_when: false
   failed_when: false
 
 - name: Bootstrap lazy.nvim if missing (one-time no-op open)
   ansible.builtin.shell: |
     set -euo pipefail
-    if [ ! -d "{{ ansible_env.HOME }}/.local/share/nvim/lazy/lazy.nvim" ]; then
+    if [ ! -d "{{ ansible_facts['env']['HOME'] }}/.local/share/nvim/lazy/lazy.nvim" ]; then
       nvim --headless +qa || true
     fi
   args:
     executable: /bin/bash
   environment:
-    PATH: "{{ (ansible_system == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_env.PATH }}"
+    PATH: "{{ (ansible_facts['system'] == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_facts['env']['PATH'] }}"
   changed_when: false
   failed_when: false
 
@@ -160,7 +160,7 @@
   args:
     executable: /bin/bash
   environment:
-    PATH: "{{ (ansible_system == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_env.PATH }}"
+    PATH: "{{ (ansible_facts['system'] == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_facts['env']['PATH'] }}"
   changed_when: false
   failed_when: false
 
@@ -171,7 +171,7 @@
   args:
     executable: /bin/bash
   environment:
-    PATH: "{{ (ansible_system == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_env.PATH }}"
+    PATH: "{{ (ansible_facts['system'] == 'Darwin') | ternary('/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:', '/usr/bin:/usr/local/bin:') }}{{ ansible_facts['env']['PATH'] }}"
   changed_when: false
   failed_when: false
 

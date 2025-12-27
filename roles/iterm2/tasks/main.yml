@@ -4,7 +4,7 @@
 
 - name: Ensure DynamicProfiles directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/Library/Application Support/iTerm2/DynamicProfiles"
+    path: "{{ ansible_facts['env']['HOME'] }}/Library/Application Support/iTerm2/DynamicProfiles"
     state: directory
     mode: "0755"
 
@@ -15,7 +15,7 @@
 - name: Install iTerm2 dynamic profile for 0xProto font
   ansible.builtin.template:
     src: 0xproto_profile.json.j2
-    dest: "{{ ansible_env.HOME }}/Library/Application Support/iTerm2/DynamicProfiles/0xproto_profile.json"
+    dest: "{{ ansible_facts['env']['HOME'] }}/Library/Application Support/iTerm2/DynamicProfiles/0xproto_profile.json"
     mode: "0644"
 
 - name: Note about applying iTerm2 dynamic profile

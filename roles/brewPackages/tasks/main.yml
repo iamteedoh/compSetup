@@ -16,7 +16,7 @@
     arch_arm: /usr/bin/arch -arm64
     arch_x86: /usr/bin/arch -x86_64
     brew_env:
-      PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:{{ ansible_env.PATH }}"
+      PATH: "/opt/homebrew/bin:/opt/homebrew/sbin:{{ ansible_facts['env']['PATH'] }}"
 
 - name: Check if Intel Homebrew exists
   stat:
@@ -24,9 +24,9 @@
   register: intel_brew
 
 - name: Ensure ARM Homebrew precedes Intel Homebrew in PATH for zsh
-  when: ansible_system == "Darwin"
+  when: ansible_facts['system'] == "Darwin"
   lineinfile:
-    path: "{{ ansible_env.HOME }}/.zshrc"
+    path: "{{ ansible_facts['env']['HOME'] }}/.zshrc"
     regexp: '^export PATH=.*opt/homebrew/bin'
     line: 'export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"'
     create: yes

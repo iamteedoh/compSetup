@@ -20,12 +20,12 @@
     state: present
   register: neovim_ppa_repo
   when:
-    - ansible_system == 'Linux'
-    - (detected_distribution | default(ansible_distribution | lower | regex_replace('[^a-z0-9_]+', '_'))) in ['ubuntu', 'pop_os']
+    - ansible_facts['system'] == 'Linux'
+    - (detected_distribution | default(ansible_facts['distribution'] | lower | regex_replace('[^a-z0-9_]+', '_'))) in ['ubuntu', 'pop_os']
 
 - name: Configure NodeSource Node.js 20.x repository
   when:
-    - ansible_system == 'Linux'
+    - ansible_facts['system'] == 'Linux'
   block:
     - name: Check if NodeSource keyring exists
       stat:
@@ -132,11 +132,11 @@
          | selectattr('linux.package', 'defined')
          | map(attribute='linux.package')
          | list }}
-  when: ansible_system == 'Linux'
+  when: ansible_facts['system'] == 'Linux'
 
 - name: Configure Signal Desktop repository
   when:
-    - ansible_system == 'Linux'
+    - ansible_facts['system'] == 'Linux'
     - signal_linux_packages | select('equalto', 'signal-desktop') | list | length > 0
   block:
     - name: Ensure signal keyring directory exists
@@ -188,7 +188,7 @@
 
 - name: Configure Antigravity repository
   when:
-    - ansible_system == 'Linux'
+    - ansible_facts['system'] == 'Linux'
     - signal_linux_packages | select('equalto', 'antigravity') | list | length > 0
   block:
     - name: Check for existing Antigravity signing key
@@ -231,7 +231,7 @@
 
 - name: Install Nerd Fonts on Linux
   when:
-    - ansible_system == 'Linux'
+    - ansible_facts['system'] == 'Linux'
     - package_manifest.fonts | default([]) | length > 0
   vars:
     linux_fonts: >-
@@ -261,7 +261,7 @@
     label: "{{ gui_app.name }}"
 
 - name: Configure Flatpak (if required)
-  when: ansible_system == 'Linux'
+  when: ansible_facts['system'] == 'Linux'
   block:
     - name: Add Flatpak Flathub remote
       become: true
@@ -280,7 +280,7 @@
 
 - name: Install Linux CLI extras
   when:
-    - ansible_system == 'Linux'
+    - ansible_facts['system'] == 'Linux'
   block:
     - name: Collect gem-based CLI tools
       set_fact:
@@ -335,7 +335,7 @@
 
     - name: Ensure PATH includes gem bindir
       ansible.builtin.blockinfile:
-        path: "{{ ansible_env.HOME }}/.bashrc"
+        path: "{{ ansible_facts['env']['HOME'] }}/.bashrc"
         marker: "# {mark} gem path"
         block: |
           export PATH={{ gem_bindir.stdout | default('/usr/local/bin') }}:$PATH
@@ -369,5 +369,5 @@
     name: neovim
     state: latest
   when:
-    - ansible_system == 'Linux'
+    - ansible_facts['system'] == 'Linux'
 

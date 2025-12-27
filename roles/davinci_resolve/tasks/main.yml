@@ -1,7 +1,7 @@
 ---
 - name: Configure DaVinci Resolve dependencies on Pop!_OS
   when:
-    - ansible_system == 'Linux'
+    - ansible_facts['system'] == 'Linux'
     - detected_distribution == 'pop_os'
   block:
     - name: Check current foreign architectures
