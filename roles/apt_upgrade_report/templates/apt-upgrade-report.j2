@@ -57,7 +57,21 @@ if [[ $RUN_UPGRADE -eq 1 ]]; then
   sudo apt upgrade -y
   if command -v flatpak >/dev/null 2>&1; then
     echo "== Running flatpak update"
-    flatpak update -y
+    ATTEMPTS=3
+    RETRY_DELAY=10
+    for ((i=1; i<=ATTEMPTS; i++)); do
+      if flatpak update -y; then
+        echo "Flatpak update successful."
+        break # Exit the loop on success
+      fi
+
+      if [[ $i -lt $ATTEMPTS ]]; then
+        echo "Flatpak update failed (attempt $i/$ATTEMPTS). Retrying in $RETRY_DELAY seconds..."
+        sleep $RETRY_DELAY
+      else
+        echo "ERROR: Flatpak update failed after $ATTEMPTS attempts. The script will continue, but Flatpak packages were not updated." >&2
+      fi
+    done || true
   fi
 fi
 
