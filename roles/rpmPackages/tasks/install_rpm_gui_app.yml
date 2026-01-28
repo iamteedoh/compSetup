@@ -10,6 +10,7 @@
 - name: Install {{ gui_app.name }} via dnf package
   when:
     - gui_app.linux.package is defined
+    - gui_app.linux.type | default('') != 'apt'
   become: true
   ansible.builtin.dnf:
     name: "{{ gui_app.linux.package }}"

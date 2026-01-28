@@ -1,0 +1,62 @@
+---
+# --- Enable System76 COPR Repository ---
+- name: Check if System76 COPR repo is already configured
+  ansible.builtin.stat:
+    path: /etc/yum.repos.d/_copr:copr.fedorainfracloud.org:szydell:system76.repo
+  register: system76_copr_stat
+
+- name: Enable System76 COPR repository
+  become: true
+  community.general.copr:
+    name: szydell/system76
+    state: enabled
+  when: not system76_copr_stat.stat.exists
+
+# --- Install System76 Base Packages ---
+- name: Install System76 base packages
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ system76_base_packages }}"
+    state: present
+
+# --- Install DKMS Packages ---
+- name: Install System76 DKMS packages
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ system76_dkms_packages }}"
+    state: present
+
+# --- Enable and Start Services ---
+- name: Enable and start System76 services
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: "{{ system76_services_enable }}"
+  failed_when: false
+
+# --- Mask Conflicting Services ---
+- name: Mask power-profiles-daemon (conflicts with System76 power management)
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    masked: true
+  loop: "{{ system76_services_mask }}"
+  failed_when: false
+
+# --- Add User to adm Group ---
+- name: Add current user to adm group for firmware access
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_facts['env']['USER'] }}"
+    groups: adm
+    append: true
+
+# --- Reboot Notice ---
+- name: System76 installation complete
+  ansible.builtin.debug:
+    msg: >-
+      System76 support has been installed and services enabled.
+      A reboot is recommended to ensure all DKMS modules and
+      firmware daemons are fully operational.

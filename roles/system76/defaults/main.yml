@@ -1,0 +1,18 @@
+---
+system76_base_packages:
+  - "system76*"
+  - firmware-manager
+
+system76_dkms_packages:
+  - system76-dkms
+  - system76-acpi-dkms
+  - system76-io-dkms
+
+system76_services_enable:
+  - system76-firmware-daemon
+  - com.system76.PowerDaemon.service
+  - system76-power-wake
+  - dkms
+
+system76_services_mask:
+  - power-profiles-daemon.service

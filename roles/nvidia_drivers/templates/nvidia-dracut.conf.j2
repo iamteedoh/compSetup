@@ -1,0 +1,2 @@
+# Managed by Ansible - NVIDIA dracut configuration for LUKS systems
+add_drivers+=" {{ nvidia_dracut_modules | join(' ') }} "

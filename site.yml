@@ -110,6 +110,26 @@
               )
             | unique }}
 
+    - name: Build rpm package targets
+      set_fact:
+        rpm_packages_resolved: >-
+          {{ (
+                package_manifest.cli_tools | default([])
+                | selectattr('dnf', 'defined')
+                | map(attribute='dnf')
+                | list
+            )
+            + (package_manifest.dnf_only.common | default([]))
+            + ((package_manifest.dnf_only.by_distribution | default({})).get(detected_distribution, []))
+            + (
+                desktop_identifiers | default([])
+                | select('in', package_manifest.dnf_only.by_desktop | default({}))
+                | map('extract', package_manifest.dnf_only.by_desktop | default({}))
+                | list
+                | sum(start=[])
+              )
+            | unique }}
+
     - name: Collect VS Code extensions list
       set_fact:
         vscode_extensions_list: "{{ package_manifest.vscode_extensions | default([]) }}"
@@ -132,5 +152,18 @@
     - role: davinci_resolve
       tags: ['davinci_resolve']
       when: install_davinci | default(false) | bool
+    - role: synergy
+      tags: ['synergy']
+      when: install_synergy | default(false) | bool
+    - role: nvidia_drivers
+      tags: ['nvidia_drivers']
+      when:
+        - install_nvidia | default(false) | bool
+        - ansible_facts['os_family'] == 'RedHat'
+    - role: system76
+      tags: ['system76']
+      when:
+        - install_system76 | default(false) | bool
+        - ansible_facts['os_family'] == 'RedHat'
     - role: iterm2
       when: ansible_facts['system'] == 'Darwin'

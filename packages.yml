@@ -8,27 +8,33 @@ package_manifest:
     - name: ansible
       brew_formula: ansible
       apt: ansible
+      dnf: ansible
     - name: bitwarden-cli
       brew_formula: bitwarden-cli
     - name: ffmpeg
       brew_formula: ffmpeg
       apt: ffmpeg
+      dnf: ffmpeg-free
     - name: git
       brew_formula: git
       apt: git
+      dnf: git
     - name: gnupg
       brew_formula: gnupg
       apt: gnupg
+      dnf: gnupg2
     - name: gotop
       brew_formula: gotop
     - name: graphviz
       brew_formula: graphviz
       apt: graphviz
+      dnf: graphviz
     - name: helm
       brew_formula: helm
     - name: htop
       brew_formula: htop
       apt: htop
+      dnf: htop
     - name: locateme
       brew_formula: locateme
     - name: minikube
@@ -36,50 +42,65 @@ package_manifest:
     - name: ncdu
       brew_formula: ncdu
       apt: ncdu
+      dnf: ncdu
     - name: neovim
       brew_formula: neovim
       apt: neovim
+      dnf: neovim
     - name: node
       brew_formula: node
       apt: nodejs
+      dnf: nodejs
     - name: pyvim
       brew_formula: pyvim
       apt: python3-pynvim
+      dnf: python3-pynvim
     - name: ripgrep
       brew_formula: ripgrep
       apt: ripgrep
+      dnf: ripgrep
     - name: sha3sum
       brew_formula: sha3sum
     - name: wakeonlan
       brew_formula: wakeonlan
       apt: wakeonlan
+      dnf: wakeonlan
     - name: wget
       brew_formula: wget
       apt: wget
+      dnf: wget
     - name: curl
       brew_formula: curl
       apt: curl
+      dnf: curl
     - name: fd
       brew_formula: fd
       apt: fd-find
+      dnf: fd-find
     - name: unzip
       brew_formula: unzip
       apt: unzip
+      dnf: unzip
     - name: python3
       brew_formula: python@3.12
       apt: python3
+      dnf: python3
     - name: ruby
       brew_formula: ruby
       apt: ruby-full
+      dnf: ruby
     - name: lsd
       brew_formula: lsd
       apt: lsd
+      dnf: lsd
     - name: watch
       brew_formula: watch
       apt: procps
+      dnf: procps-ng
     - name: trash
       brew_formula: trash
       apt: trash-cli
+      dnf: trash-cli
     - name: claude-code
       brew_cask: claude-code
       linux:
@@ -183,6 +204,21 @@ package_manifest:
       cosmic:
         - cosmic-term
 
+  dnf_only:
+    common:
+      - "@development-tools"
+      - python3-pip
+      - flatpak
+      - fontconfig
+      - docker-compose
+      - tree
+      - bat
+      - gh
+    by_distribution: {}
+    by_desktop:
+      kde:
+        - plasma-discover-backend-flatpak
+
   flatpak_apps:
     - com.brave.Browser
     - com.getmailspring.Mailspring
@@ -207,3 +243,4 @@ package_manifest:
     - org.jupyter.JupyterLab
     - com.vscodium.codium
     - org.localsend.localsend_app
+    - org.signal.Signal

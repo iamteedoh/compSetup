@@ -1,0 +1,22 @@
+---
+# NVIDIA driver packages for modern GPUs (Maxwell 2014+ / GTX 900+)
+nvidia_modern_packages:
+  - akmod-nvidia
+  - xorg-x11-drv-nvidia-cuda
+
+# NVIDIA driver packages for legacy GPUs (Kepler / GTX 600-700 series)
+nvidia_legacy_packages:
+  - akmod-nvidia-470xx
+  - xorg-x11-drv-nvidia-470xx-cuda
+  - xorg-x11-drv-nvidia-470xx
+
+# RPM Fusion repository URLs
+nvidia_rpmfusion_free: "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_facts['distribution_version'] }}.noarch.rpm"
+nvidia_rpmfusion_nonfree: "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_facts['distribution_version'] }}.noarch.rpm"
+
+# Dracut modules for LUKS-encrypted systems
+nvidia_dracut_modules:
+  - nvidia
+  - nvidia_modeset
+  - nvidia_uvm
+  - nvidia_drm

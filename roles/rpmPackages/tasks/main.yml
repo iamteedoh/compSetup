@@ -1,22 +1,59 @@
 ---
 - name: Normalize rpm package list
   set_fact:
-    rpm_packages_resolved: >-
-      {{ (
-            package_manifest.cli_tools | default([])
-            | selectattr('apt', 'defined')
-            | map(attribute='apt')
-            | list
-        )
-        + (package_manifest.apt_only.common | default([]))
-        | unique }}
+    rpm_packages_resolved: "{{ rpm_packages_resolved | default([]) | unique }}"
+
+- name: Separate DNF groups from individual packages
+  set_fact:
+    rpm_groups: "{{ rpm_packages_resolved | select('match', '^@') | list }}"
+    rpm_individual: "{{ rpm_packages_resolved | reject('match', '^@') | list }}"
+
+- name: Filter rpm packages by repository availability
+  when: rpm_individual | length > 0
+  block:
+    - name: Check dnf package availability
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if dnf info "{{ item }}" >/dev/null 2>&1; then
+          printf '%s' "{{ item }}"
+        fi
+      args:
+        executable: /bin/bash
+      loop: "{{ rpm_individual }}"
+      register: rpm_package_checks
+      changed_when: false
+      failed_when: false
+
+    - name: Gather available rpm packages
+      set_fact:
+        rpm_packages_available: "{{ rpm_package_checks.results
+          | map(attribute='stdout')
+          | reject('equalto', '')
+          | list
+          | unique }}"
+
+    - name: Warn about missing rpm packages
+      ansible.builtin.debug:
+        msg: >-
+          Skipping packages not found in DNF repositories: {{ rpm_individual | difference(rpm_packages_available | default([])) }}
+      when: (rpm_individual | difference(rpm_packages_available | default([]))) | length > 0
+      changed_when: false
+
+- name: Install DNF package groups
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ rpm_groups }}"
+    state: present
+  when: rpm_groups | length > 0
 
 - name: Install RPM packages
   become: true
   ansible.builtin.dnf:
-    name: "{{ rpm_packages_resolved | default([]) }}"
+    name: "{{ rpm_packages_available | default([]) }}"
     state: present
-  when: rpm_packages_resolved | length > 0
+  when:
+    - rpm_packages_available is defined
+    - rpm_packages_available | length > 0
 
 - name: Install Nerd Fonts
   when: package_manifest.fonts | default([]) | length > 0
@@ -39,6 +76,31 @@
       ansible.builtin.command: fc-cache -f
       when: font_cache_refresh_required | default(false)
       changed_when: true
+
+- name: Configure Antigravity RPM repository
+  when: package_manifest.gui_apps | default([])
+        | selectattr('name', 'equalto', 'antigravity') | list | length > 0
+  block:
+    - name: Check if Antigravity repo is already configured
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/antigravity.repo
+      register: antigravity_repo_stat
+
+    - name: Add Antigravity RPM repository
+      become: true
+      ansible.builtin.yum_repository:
+        name: antigravity-rpm
+        description: Antigravity RPM Repository
+        baseurl: https://us-central1-yum.pkg.dev/projects/antigravity-auto-updater-dev/antigravity-rpm
+        enabled: true
+        gpgcheck: false
+      when: not antigravity_repo_stat.stat.exists
+
+    - name: Refresh dnf cache after adding Antigravity repo
+      become: true
+      ansible.builtin.command: dnf makecache
+      when: not antigravity_repo_stat.stat.exists
+      changed_when: false
 
 - name: Install Linux GUI applications
   ansible.builtin.include_tasks: install_rpm_gui_app.yml

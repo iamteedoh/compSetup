@@ -14,6 +14,9 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 SKIP_AI_TOOLS=false
 INSTALL_DAVINCI=false
+INSTALL_SYNERGY=false
+INSTALL_NVIDIA=false
+INSTALL_SYSTEM76=false
 SKIP_VSCODE=false
 OMIT_LIST=""
 
@@ -25,6 +28,18 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-davinci)
       INSTALL_DAVINCI=true
+      shift
+      ;;
+    --install-synergy)
+      INSTALL_SYNERGY=true
+      shift
+      ;;
+    --install-nvidia)
+      INSTALL_NVIDIA=true
+      shift
+      ;;
+    --install-system76)
+      INSTALL_SYSTEM76=true
       shift
       ;;
     --skip-vscode-extensions)
@@ -142,16 +157,15 @@ cat <<EOF > "$VARS_FILE"
   "ansible_become_password": "${SUDO_PASS}",
   "skip_ai_tools": ${SKIP_AI_TOOLS},
   "install_davinci": ${INSTALL_DAVINCI},
+  "install_synergy": ${INSTALL_SYNERGY},
+  "install_nvidia": ${INSTALL_NVIDIA},
+  "install_system76": ${INSTALL_SYSTEM76},
   "skip_vscode_extensions": ${SKIP_VSCODE},
   "omit_list_str": "${OMIT_LIST}"
 }
 EOF
 
-if ! log_and_run env ANSIBLE_FORCE_COLOR=1 ansible-playbook "$PLAYBOOK" --extra-vars @"$VARS_FILE"; then
-  ansible_exit=$?
-else
-  ansible_exit=0
-fi
+log_and_run env ANSIBLE_FORCE_COLOR=1 ansible-playbook "$PLAYBOOK" --extra-vars @"$VARS_FILE" && ansible_exit=0 || ansible_exit=$?
 
 rm -f "$VARS_FILE"
 
@@ -165,3 +179,52 @@ fi
 
 echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"
 
+echo "" | tee -a "$LOGFILE"
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
+echo -e "${YELLOW}  Powerlevel10k Setup${NC}" | tee -a "$LOGFILE"
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
+echo -e "  To configure your Powerlevel10k prompt, run:" | tee -a "$LOGFILE"
+echo "" | tee -a "$LOGFILE"
+echo -e "    ${GREEN}p10k_setup.py${NC}" | tee -a "$LOGFILE"
+echo "" | tee -a "$LOGFILE"
+echo -e "  This lets you apply the default theme, run the interactive" | tee -a "$LOGFILE"
+echo -e "  wizard, or load your own custom .p10k.zsh file." | tee -a "$LOGFILE"
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
+echo "" | tee -a "$LOGFILE"
+
+REBOOT_NEEDED=false
+REBOOT_REASONS=()
+
+# Check if NVIDIA drivers were installed
+if [[ "$INSTALL_NVIDIA" == "true" ]]; then
+  REBOOT_NEEDED=true
+  REBOOT_REASONS+=("NVIDIA drivers were installed")
+fi
+
+# Check if kernel was upgraded (running kernel != latest installed)
+RUNNING_KERNEL=$(uname -r)
+if command -v rpm &>/dev/null; then
+  LATEST_KERNEL=$(rpm -q kernel --last 2>/dev/null | head -1 | awk '{print $1}' | sed 's/kernel-//')
+elif command -v dpkg &>/dev/null; then
+  LATEST_KERNEL=$(dpkg -l 'linux-image-[0-9]*' 2>/dev/null | grep '^ii' | awk '{print $2}' | sort -V | tail -1 | sed 's/linux-image-//')
+fi
+if [[ -n "${LATEST_KERNEL:-}" && "$RUNNING_KERNEL" != "$LATEST_KERNEL" ]]; then
+  REBOOT_NEEDED=true
+  REBOOT_REASONS+=("Kernel upgraded: ${RUNNING_KERNEL} -> ${LATEST_KERNEL}")
+fi
+
+if [[ "$REBOOT_NEEDED" == "true" ]]; then
+  echo -e "${YELLOW}Reboot recommended:${NC}" | tee -a "$LOGFILE"
+  for reason in "${REBOOT_REASONS[@]}"; do
+    echo -e "  - ${reason}" | tee -a "$LOGFILE"
+  done
+  echo "" | tee -a "$LOGFILE"
+  echo -ne "${YELLOW}Reboot now? [y/N]: ${NC}"
+  read -r REBOOT_CHOICE
+  if [[ "$REBOOT_CHOICE" =~ ^[Yy]$ ]]; then
+    echo -e "${GREEN}Rebooting...${NC}" | tee -a "$LOGFILE"
+    sudo reboot
+  else
+    echo -e "${GREEN}Skipping reboot. Remember to reboot when convenient.${NC}" | tee -a "$LOGFILE"
+  fi
+fi

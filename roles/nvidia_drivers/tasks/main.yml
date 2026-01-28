@@ -1,0 +1,174 @@
+---
+# --- Detect NVIDIA GPU First ---
+- name: Detect NVIDIA GPU via lspci
+  ansible.builtin.shell: |
+    set -euo pipefail
+    lspci -nn 2>/dev/null | grep -iE 'VGA|3D' | grep -i 'nvidia' | head -1
+  args:
+    executable: /bin/bash
+  register: nvidia_lspci_output
+  changed_when: false
+  failed_when: false
+
+- name: Set GPU detected fact
+  ansible.builtin.set_fact:
+    nvidia_gpu_detected: "{{ (nvidia_lspci_output.stdout | default('') | length) > 0 }}"
+
+- name: Display detected GPU
+  ansible.builtin.debug:
+    msg: "Detected GPU: {{ nvidia_lspci_output.stdout }}"
+  when: nvidia_gpu_detected | bool
+
+- name: Skip NVIDIA install if no GPU detected
+  ansible.builtin.debug:
+    msg: "No NVIDIA GPU detected via lspci. Skipping entire NVIDIA driver installation."
+  when: not (nvidia_gpu_detected | bool)
+
+# --- Everything below only runs if an NVIDIA GPU is present ---
+- name: Install NVIDIA drivers
+  when: nvidia_gpu_detected | bool
+  block:
+    # --- Secure Boot Check ---
+    - name: Check Secure Boot status
+      ansible.builtin.command: mokutil --sb-state
+      register: nvidia_secureboot_check
+      changed_when: false
+      failed_when: false
+
+    - name: Warn if Secure Boot is enabled
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: Secure Boot is ENABLED. After NVIDIA driver installation,
+          you must manually enroll the MOK (Machine Owner Key) on next reboot.
+          The system will prompt you during boot. If you skip enrollment,
+          the NVIDIA kernel module will not load.
+      when: >-
+        nvidia_secureboot_check.rc == 0 and
+        'SecureBoot enabled' in (nvidia_secureboot_check.stdout | default(''))
+
+    # --- Enable RPM Fusion Repositories ---
+    - name: Check if RPM Fusion Free is enabled
+      ansible.builtin.shell: |
+        set -euo pipefail
+        dnf repolist --enabled | grep -q 'rpmfusion-free'
+      args:
+        executable: /bin/bash
+      register: nvidia_rpmfusion_free_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install RPM Fusion Free release package
+      become: true
+      ansible.builtin.dnf:
+        name: "{{ nvidia_rpmfusion_free }}"
+        state: present
+        disable_gpg_check: true
+      when: nvidia_rpmfusion_free_check.rc != 0
+
+    - name: Check if RPM Fusion Non-Free is enabled
+      ansible.builtin.shell: |
+        set -euo pipefail
+        dnf repolist --enabled | grep -q 'rpmfusion-nonfree'
+      args:
+        executable: /bin/bash
+      register: nvidia_rpmfusion_nonfree_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install RPM Fusion Non-Free release package
+      become: true
+      ansible.builtin.dnf:
+        name: "{{ nvidia_rpmfusion_nonfree }}"
+        state: present
+        disable_gpg_check: true
+      when: nvidia_rpmfusion_nonfree_check.rc != 0
+
+    # --- Determine GPU Generation ---
+    - name: Determine GPU generation (modern vs legacy)
+      ansible.builtin.set_fact:
+        nvidia_gpu_is_legacy: >-
+          {{
+            (nvidia_lspci_output.stdout | lower is search('kepler'))
+            or (nvidia_lspci_output.stdout | lower is search('gk[0-9]'))
+            or (nvidia_lspci_output.stdout | lower is search('gt\s*6[0-9]{2}'))
+            or (nvidia_lspci_output.stdout | lower is search('gt\s*7[0-9]{2}'))
+            or (nvidia_lspci_output.stdout | lower is search('gtx\s*6[0-9]{2}'))
+            or (nvidia_lspci_output.stdout | lower is search('gtx\s*7[0-9]{2}'))
+          }}
+
+    - name: Set NVIDIA package list based on GPU generation
+      ansible.builtin.set_fact:
+        nvidia_packages_to_install: >-
+          {{ nvidia_legacy_packages if (nvidia_gpu_is_legacy | bool) else nvidia_modern_packages }}
+
+    - name: Display selected driver tier
+      ansible.builtin.debug:
+        msg: >-
+          GPU generation: {{ 'LEGACY (Kepler/pre-2014)' if (nvidia_gpu_is_legacy | bool) else 'MODERN (Maxwell+/2014+)' }}.
+          Packages: {{ nvidia_packages_to_install }}
+
+    # --- Install Driver Packages ---
+    - name: Install NVIDIA driver packages
+      become: true
+      ansible.builtin.dnf:
+        name: "{{ nvidia_packages_to_install }}"
+        state: present
+
+    # --- LUKS Encryption Detection and Dracut Config ---
+    - name: Check for LUKS encrypted volumes
+      ansible.builtin.shell: |
+        set -euo pipefail
+        lsblk -f 2>/dev/null | grep -q 'crypto_LUKS'
+      args:
+        executable: /bin/bash
+      register: nvidia_luks_check
+      changed_when: false
+      failed_when: false
+
+    - name: Configure dracut for NVIDIA on LUKS systems
+      when: nvidia_luks_check.rc == 0
+      block:
+        - name: Display LUKS detection notice
+          ansible.builtin.debug:
+            msg: "LUKS encryption detected. Configuring dracut to include NVIDIA modules in initramfs."
+
+        - name: Deploy NVIDIA dracut configuration
+          become: true
+          ansible.builtin.template:
+            src: nvidia-dracut.conf.j2
+            dest: /etc/dracut.conf.d/nvidia.conf
+            owner: root
+            group: root
+            mode: "0644"
+          register: nvidia_dracut_config
+
+        - name: Regenerate initramfs with NVIDIA modules
+          become: true
+          ansible.builtin.command: dracut --force
+          when: nvidia_dracut_config.changed
+          changed_when: true
+
+    # --- Verification ---
+    - name: Verify NVIDIA kernel module is available
+      ansible.builtin.command: modinfo -F version nvidia
+      register: nvidia_modinfo
+      changed_when: false
+      failed_when: false
+
+    - name: Display NVIDIA driver status
+      ansible.builtin.debug:
+        msg: >-
+          {% if nvidia_modinfo.rc == 0 %}
+          NVIDIA driver version {{ nvidia_modinfo.stdout | trim }} is available.
+          {% else %}
+          NVIDIA kernel module not yet loaded (expected before first reboot).
+          {% endif %}
+
+    - name: Reboot notice
+      ansible.builtin.debug:
+        msg: >-
+          IMPORTANT: You MUST reboot for NVIDIA drivers to take effect.
+          After reboot, verify with: nvidia-smi
+          {% if nvidia_secureboot_check.stdout | default('') is search('SecureBoot enabled') %}
+          NOTE: Secure Boot is enabled. You will be prompted to enroll the MOK key during reboot.
+          {% endif %}

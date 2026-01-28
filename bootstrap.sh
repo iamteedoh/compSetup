@@ -13,8 +13,12 @@ BLACKLIST_FILE="$HOME/.install_blacklist"
 # State Variables
 SKIP_AI_TOOLS=false
 INSTALL_DAVINCI=false
+INSTALL_SYNERGY=false
+INSTALL_NVIDIA=false
+INSTALL_SYSTEM76=false
 SKIP_VSCODE=false
 OMIT_LIST=""
+SELECTED_DISTRO=""    # "fedora", "ubuntu", or "" (macOS)
 
 # --- Colors & Styles ---
 ESC=$(printf '\033')
@@ -76,6 +80,76 @@ get_status_badge() {
     fi
 }
 
+# OS / Distro Selection
+validate_os_choice() {
+    local choice="$1"
+    case "$choice" in
+        fedora|ubuntu)
+            if [[ "$OS_NAME" != "Linux" ]]; then
+                echo ""
+                echo -e "  ${RED}${ICON_WARN} Mismatch: You selected a Linux distribution but this system is ${OS_NAME}.${RESET}"
+                echo -e "  ${DIM}  Please select the correct OS for this machine.${RESET}"
+                echo ""
+                sleep 2
+                return 1
+            fi
+            ;;
+        macos)
+            if [[ "$OS_NAME" != "Darwin" ]]; then
+                echo ""
+                echo -e "  ${RED}${ICON_WARN} Mismatch: You selected macOS but this system is ${OS_NAME}.${RESET}"
+                echo -e "  ${DIM}  Please select the correct OS for this machine.${RESET}"
+                echo ""
+                sleep 2
+                return 1
+            fi
+            ;;
+    esac
+    return 0
+}
+
+show_distro_menu() {
+    while true; do
+        draw_header
+        echo ""
+        echo -e "  ${BOLD}Which OS are you running this installation on?${RESET}"
+        echo -e "  ${DIM}  Detected: ${OS_NAME}${RESET}"
+        echo ""
+        echo -e "  ${CYAN}[1]${RESET} 🐧 Fedora"
+        echo -e "  ${CYAN}[2]${RESET} 🐧 Ubuntu / Pop!_OS"
+        echo -e "  ${CYAN}[3]${RESET} 🍎 macOS"
+        echo -e "  ${CYAN}[Q]${RESET} ❌ Exit"
+        echo ""
+        draw_line "─"
+        read -p "  Selection: " -n 1 -r distro_choice
+        echo ""
+        case $distro_choice in
+            1)
+                if validate_os_choice "fedora"; then
+                    SELECTED_DISTRO="fedora"
+                    return
+                fi
+                ;;
+            2)
+                if validate_os_choice "ubuntu"; then
+                    SELECTED_DISTRO="ubuntu"
+                    return
+                fi
+                ;;
+            3)
+                if validate_os_choice "macos"; then
+                    SELECTED_DISTRO="macos"
+                    return
+                fi
+                ;;
+            [Qq])
+                echo -e "\n  ${GREEN}Goodbye!${RESET}"
+                exit 0
+                ;;
+        esac
+    done
+}
+
 # Main Menu
 show_main_menu() {
     draw_header
@@ -84,8 +158,15 @@ show_main_menu() {
     echo ""
     echo -e "  ${CYAN}[1]${RESET} 🚀 Install Everything (Standard)"
     echo -e "  ${CYAN}[2]${RESET} 🍃 Install Everything (No AI Tools)"
-    echo -e "  ${CYAN}[3]${RESET} ⚙️  Custom Installation / Configure Options"
-    echo -e "  ${CYAN}[4]${RESET} 📝 Edit Package Blacklist"
+    if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+        echo -e "  ${CYAN}[3]${RESET} 🖥️  Install Everything + System76 Support"
+        echo -e "  ${CYAN}[4]${RESET} 🎮 Install NVIDIA Drivers Only"
+        echo -e "  ${CYAN}[5]${RESET} ⚙️  Custom Installation / Configure Options"
+        echo -e "  ${CYAN}[6]${RESET} 📝 Edit Package Blacklist"
+    else
+        echo -e "  ${CYAN}[3]${RESET} ⚙️  Custom Installation / Configure Options"
+        echo -e "  ${CYAN}[4]${RESET} 📝 Edit Package Blacklist"
+    fi
     echo -e "  ${CYAN}[Q]${RESET} ❌ Exit"
     echo ""
     draw_line "─"
@@ -102,6 +183,14 @@ show_custom_menu() {
         echo -e "  ${CYAN}[1]${RESET} ${ICON_AI} Skip AI Tools .................... $(get_status_badge $SKIP_AI_TOOLS)"
         echo -e "  ${CYAN}[2]${RESET} ${ICON_CODE} Skip VS Code Extensions ........... $(get_status_badge $SKIP_VSCODE)"
         echo -e "  ${CYAN}[3]${RESET} ${ICON_MEDIA} Install DaVinci Dependencies ...... $(get_status_badge $INSTALL_DAVINCI)"
+        echo -e "  ${CYAN}[4]${RESET} 🖥️  Install Synergy (KVM) .............. $(get_status_badge $INSTALL_SYNERGY)"
+        echo -e "      ${DIM}Share keyboard & mouse across computers${RESET}"
+        if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+            echo -e "  ${CYAN}[5]${RESET} 🎮 Install NVIDIA Drivers ............ $(get_status_badge $INSTALL_NVIDIA)"
+            echo -e "      ${DIM}Auto-detects GPU generation${RESET}"
+            echo -e "  ${CYAN}[6]${RESET} 💻 Install System76 Support .......... $(get_status_badge $INSTALL_SYSTEM76)"
+            echo -e "      ${DIM}System76 firmware, power, DKMS${RESET}"
+        fi
         echo ""
         echo -e "  ${CYAN}[R]${RESET} ▶️  Run Installation with these settings"
         echo -e "  ${CYAN}[B]${RESET} 🔙 Back to Main Menu"
@@ -117,8 +206,21 @@ show_custom_menu() {
             2) 
                 if [[ "$SKIP_VSCODE" == "true" ]]; then SKIP_VSCODE=false; else SKIP_VSCODE=true; fi 
                 ;;
-            3) 
-                if [[ "$INSTALL_DAVINCI" == "true" ]]; then INSTALL_DAVINCI=false; else INSTALL_DAVINCI=true; fi 
+            3)
+                if [[ "$INSTALL_DAVINCI" == "true" ]]; then INSTALL_DAVINCI=false; else INSTALL_DAVINCI=true; fi
+                ;;
+            4)
+                if [[ "$INSTALL_SYNERGY" == "true" ]]; then INSTALL_SYNERGY=false; else INSTALL_SYNERGY=true; fi
+                ;;
+            5)
+                if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+                    if [[ "$INSTALL_NVIDIA" == "true" ]]; then INSTALL_NVIDIA=false; else INSTALL_NVIDIA=true; fi
+                fi
+                ;;
+            6)
+                if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+                    if [[ "$INSTALL_SYSTEM76" == "true" ]]; then INSTALL_SYSTEM76=false; else INSTALL_SYSTEM76=true; fi
+                fi
                 ;;
             [Rr])
                 run_installation
@@ -166,6 +268,9 @@ run_installation() {
     ARGS=()
     if [[ "$SKIP_AI_TOOLS" == "true" ]]; then ARGS+=("--skip-ai-tools"); fi
     if [[ "$INSTALL_DAVINCI" == "true" ]]; then ARGS+=("--install-davinci"); fi
+    if [[ "$INSTALL_SYNERGY" == "true" ]]; then ARGS+=("--install-synergy"); fi
+    if [[ "$INSTALL_NVIDIA" == "true" ]]; then ARGS+=("--install-nvidia"); fi
+    if [[ "$INSTALL_SYSTEM76" == "true" ]]; then ARGS+=("--install-system76"); fi
     if [[ "$SKIP_VSCODE" == "true" ]]; then ARGS+=("--skip-vscode-extensions"); fi
     if [[ -n "$OMIT_LIST" ]]; then ARGS+=("--omit-list" "$OMIT_LIST"); fi
 
@@ -272,29 +377,58 @@ if [[ $# -gt 0 ]]; then
 fi
 
 # --- Main Loop (TUI Mode) ---
+show_distro_menu
+
 while true; do
     show_main_menu
     read -p "  Selection: " -n 1 -r choice
     echo ""
-    
+
     case $choice in
         1)
-            # Standard: Install Everything (Defaults: AI=false (meaning install it), VSCode=false (install it), Davinci=false)
+            # Standard: Install Everything
             SKIP_AI_TOOLS=false
             SKIP_VSCODE=false
-            # Should Davinci be default? No.
+            INSTALL_SYNERGY=true
             run_installation
             ;;
         2)
             # No AI
             SKIP_AI_TOOLS=true
+            INSTALL_SYNERGY=true
             run_installation
             ;;
         3)
-            show_custom_menu
+            if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+                # Everything + System76 Support
+                SKIP_AI_TOOLS=false
+                SKIP_VSCODE=false
+                INSTALL_SYNERGY=true
+                INSTALL_NVIDIA=true
+                INSTALL_SYSTEM76=true
+                run_installation
+            else
+                show_custom_menu
+            fi
             ;;
         4)
-            edit_blacklist
+            if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+                # NVIDIA Drivers Only
+                INSTALL_NVIDIA=true
+                run_installation
+            else
+                edit_blacklist
+            fi
+            ;;
+        5)
+            if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+                show_custom_menu
+            fi
+            ;;
+        6)
+            if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+                edit_blacklist
+            fi
             ;;
         [Qq])
             echo -e "\n  ${GREEN}Goodbye!${RESET}"

@@ -1,0 +1,107 @@
+---
+- name: Check if Synergy is already installed
+  ansible.builtin.command: which synergy
+  register: synergy_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Synergy on macOS via Homebrew
+  when:
+    - ansible_facts['system'] == 'Darwin'
+    - synergy_check.rc != 0
+  ansible.builtin.command: brew install --cask synergy
+  register: synergy_brew
+  changed_when: "'already installed' not in (synergy_brew.stderr | default(''))"
+
+- name: Install Synergy on Linux
+  when:
+    - ansible_facts['system'] == 'Linux'
+    - synergy_check.rc != 0
+  block:
+    - name: Determine Synergy download parameters
+      ansible.builtin.set_fact:
+        synergy_os_slug: >-
+          {%- if ansible_facts['distribution'] == 'Fedora' -%}
+            fedora-{{ ansible_facts['distribution_version'] }}
+          {%- elif ansible_facts['distribution'] in ['Ubuntu', 'Pop!_OS'] -%}
+            ubuntu-{{ ansible_facts['distribution_version'] }}
+          {%- elif ansible_facts['distribution'] == 'Debian' -%}
+            debian-{{ ansible_facts['distribution_major_version'] }}
+          {%- else -%}
+            unsupported
+          {%- endif -%}
+        synergy_pkg_ext: >-
+          {%- if ansible_facts['os_family'] == 'RedHat' -%}
+            rpm
+          {%- elif ansible_facts['os_family'] == 'Debian' -%}
+            deb
+          {%- else -%}
+            unsupported
+          {%- endif -%}
+        synergy_codename: >-
+          {%- if ansible_facts['distribution'] in ['Ubuntu', 'Pop!_OS'] and ansible_facts['distribution_version'] is version('24.04', '<') -%}
+            jammy
+          {%- elif ansible_facts['distribution'] == 'Debian' and ansible_facts['distribution_major_version'] is version('13', '<') -%}
+            jammy
+          {%- else -%}
+            noble
+          {%- endif -%}
+
+    - name: Fail on unsupported distribution
+      ansible.builtin.fail:
+        msg: "Synergy installation is not supported on {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+      when: synergy_os_slug == 'unsupported' or synergy_pkg_ext == 'unsupported'
+
+    - name: Set Synergy filename and URL variables
+      ansible.builtin.set_fact:
+        synergy_filename: "synergy-{{ synergy_version }}-linux-{{ synergy_codename }}-x86_64.{{ synergy_pkg_ext }}"
+        synergy_landing_url: "https://symless.com/synergy/download/package/synergy-personal-v3/{{ synergy_os_slug }}/synergy-{{ synergy_version }}-linux-{{ synergy_codename }}-x86_64.{{ synergy_pkg_ext }}"
+        synergy_download_dest: "/tmp/synergy-{{ synergy_version }}.{{ synergy_pkg_ext }}"
+
+    - name: Display Synergy download details
+      ansible.builtin.debug:
+        msg: "Fetching download token from: {{ synergy_landing_url }}"
+
+    - name: Fetch Synergy download token from landing page
+      ansible.builtin.shell: |
+        set -euo pipefail
+        curl -sL "{{ synergy_landing_url }}" | grep -oP 'token\\":\\"\K[^\\]+'
+      args:
+        executable: /bin/bash
+      register: synergy_token_result
+      changed_when: false
+
+    - name: Fail if download token could not be extracted
+      ansible.builtin.fail:
+        msg: >-
+          Could not extract Synergy download token from the landing page.
+          The download page structure may have changed, or the version
+          {{ synergy_version }} may not be available for {{ synergy_os_slug }}.
+      when: synergy_token_result.stdout | trim | length == 0
+
+    - name: Download Synergy package via API
+      ansible.builtin.get_url:
+        url: "https://symless.com/synergy/api/download/{{ synergy_filename }}?token={{ synergy_token_result.stdout | trim }}"
+        dest: "{{ synergy_download_dest }}"
+        mode: "0644"
+      register: synergy_download
+
+    - name: Install Synergy RPM package
+      become: true
+      ansible.builtin.dnf:
+        name: "{{ synergy_download_dest }}"
+        state: present
+        disable_gpg_check: true
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    - name: Install Synergy DEB package
+      become: true
+      ansible.builtin.apt:
+        deb: "{{ synergy_download_dest }}"
+        state: present
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Clean up downloaded package
+      ansible.builtin.file:
+        path: "{{ synergy_download_dest }}"
+        state: absent

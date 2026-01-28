@@ -7,12 +7,23 @@
   failed_when: false
   when: ansible_facts['system'] == 'Darwin'
 
-- name: Ensure zsh is installed on Linux
+- name: Ensure zsh is installed on Linux (Debian/Ubuntu)
   become: true
   ansible.builtin.apt:
     name: zsh
     state: present
-  when: ansible_facts['system'] == 'Linux'
+  when:
+    - ansible_facts['system'] == 'Linux'
+    - ansible_facts['os_family'] == 'Debian'
+
+- name: Ensure zsh is installed on Linux (Fedora/RHEL)
+  become: true
+  ansible.builtin.dnf:
+    name: zsh
+    state: present
+  when:
+    - ansible_facts['system'] == 'Linux'
+    - ansible_facts['os_family'] == 'RedHat'
 
 # tasks file for installOhMyZSH
 

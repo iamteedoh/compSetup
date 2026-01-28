@@ -13,6 +13,7 @@ NC='\033[0m' # No Color
 
 SKIP_AI_TOOLS=false
 INSTALL_DAVINCI=false
+INSTALL_SYNERGY=false
 SKIP_VSCODE=false
 OMIT_LIST=""
 
@@ -24,6 +25,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-davinci)
       INSTALL_DAVINCI=true
+      shift
+      ;;
+    --install-synergy)
+      INSTALL_SYNERGY=true
       shift
       ;;
     --skip-vscode-extensions)
@@ -193,10 +198,24 @@ if [[ -f "$PLAYBOOK" ]]; then
   fi
 VARS_FILE=$(mktemp -t ansible-vars.XXXXXX)
   chmod 600 "$VARS_FILE"
-printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s", "skip_ai_tools": %s, "install_davinci": %s, "omit_list_str": "%s"}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" "$SKIP_AI_TOOLS" "$INSTALL_DAVINCI" "$OMIT_LIST" > "$VARS_FILE"
+printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s", "skip_ai_tools": %s, "install_davinci": %s, "install_synergy": %s, "omit_list_str": "%s"}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" "$SKIP_AI_TOOLS" "$INSTALL_DAVINCI" "$INSTALL_SYNERGY" "$OMIT_LIST" > "$VARS_FILE"
 log_and_run "ansible-playbook $PLAYBOOK --extra-vars @\"$VARS_FILE\""
   rm -f "$VARS_FILE" 2>/dev/null || true
   echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"
+
+  echo "" | tee -a "$LOGFILE"
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
+  echo -e "${YELLOW}  Powerlevel10k Setup${NC}" | tee -a "$LOGFILE"
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
+  echo -e "  To configure your Powerlevel10k prompt, run:" | tee -a "$LOGFILE"
+  echo "" | tee -a "$LOGFILE"
+  echo -e "    ${GREEN}p10k_setup.py${NC}" | tee -a "$LOGFILE"
+  echo "" | tee -a "$LOGFILE"
+  echo -e "  This lets you apply the default theme, run the interactive" | tee -a "$LOGFILE"
+  echo -e "  wizard, or load your own custom .p10k.zsh file." | tee -a "$LOGFILE"
+  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
+  echo "" | tee -a "$LOGFILE"
+
 else
   echo -e "${RED}Playbook $PLAYBOOK not found. Exiting.${NC}" | tee -a "$LOGFILE"
   exit 1
