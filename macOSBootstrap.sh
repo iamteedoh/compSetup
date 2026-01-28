@@ -13,6 +13,7 @@ NC='\033[0m' # No Color
 
 SKIP_AI_TOOLS=false
 INSTALL_DAVINCI=false
+DAVINCI_EDITION=""
 INSTALL_SYNERGY=false
 SKIP_VSCODE=false
 OMIT_LIST=""
@@ -26,6 +27,10 @@ while [[ $# -gt 0 ]]; do
     --install-davinci)
       INSTALL_DAVINCI=true
       shift
+      ;;
+    --davinci-edition)
+      DAVINCI_EDITION="$2"
+      shift 2
       ;;
     --install-synergy)
       INSTALL_SYNERGY=true
@@ -198,7 +203,7 @@ if [[ -f "$PLAYBOOK" ]]; then
   fi
 VARS_FILE=$(mktemp -t ansible-vars.XXXXXX)
   chmod 600 "$VARS_FILE"
-printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s", "skip_ai_tools": %s, "install_davinci": %s, "install_synergy": %s, "omit_list_str": "%s"}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" "$SKIP_AI_TOOLS" "$INSTALL_DAVINCI" "$INSTALL_SYNERGY" "$OMIT_LIST" > "$VARS_FILE"
+printf '{"install_vscode_extensions": %s, "ansible_become_password": "%s", "skip_ai_tools": %s, "install_davinci": %s, "davinci_edition": "%s", "install_synergy": %s, "omit_list_str": "%s"}\n' "$VSCODE_FLAG" "$ANSIBLE_BECOME_PASSWORD" "$SKIP_AI_TOOLS" "$INSTALL_DAVINCI" "$DAVINCI_EDITION" "$INSTALL_SYNERGY" "$OMIT_LIST" > "$VARS_FILE"
 log_and_run "ansible-playbook $PLAYBOOK --extra-vars @\"$VARS_FILE\""
   rm -f "$VARS_FILE" 2>/dev/null || true
   echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"

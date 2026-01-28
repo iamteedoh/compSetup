@@ -14,6 +14,7 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 SKIP_AI_TOOLS=false
 INSTALL_DAVINCI=false
+DAVINCI_EDITION=""
 INSTALL_SYNERGY=false
 INSTALL_NVIDIA=false
 INSTALL_SYSTEM76=false
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
     --install-davinci)
       INSTALL_DAVINCI=true
       shift
+      ;;
+    --davinci-edition)
+      DAVINCI_EDITION="$2"
+      shift 2
       ;;
     --install-synergy)
       INSTALL_SYNERGY=true
@@ -157,6 +162,7 @@ cat <<EOF > "$VARS_FILE"
   "ansible_become_password": "${SUDO_PASS}",
   "skip_ai_tools": ${SKIP_AI_TOOLS},
   "install_davinci": ${INSTALL_DAVINCI},
+  "davinci_edition": "${DAVINCI_EDITION}",
   "install_synergy": ${INSTALL_SYNERGY},
   "install_nvidia": ${INSTALL_NVIDIA},
   "install_system76": ${INSTALL_SYSTEM76},

@@ -1,8 +1,28 @@
 ---
-- name: Configure DaVinci Resolve dependencies on Pop!_OS
+# DaVinci Resolve - Multi-Platform Dependency Installation & Setup
+#
+# Installs platform-appropriate dependencies for DaVinci Resolve.
+# The application itself must be downloaded manually from Blackmagic Design
+# (registration required). Post-install instructions are displayed at the end.
+
+- name: Display DaVinci Resolve configuration
+  ansible.builtin.debug:
+    msg: >-
+      DaVinci Resolve edition: {{ davinci_edition | default('free') | upper }}.
+      Platform: {{ ansible_facts['system'] }} / {{ ansible_facts['os_family'] | default('N/A') }}.
+
+# --- macOS (no dependencies needed) ---
+- name: DaVinci Resolve on macOS
+  when: ansible_facts['system'] == 'Darwin'
+  ansible.builtin.debug:
+    msg: >-
+      macOS requires no additional dependencies for DaVinci Resolve.
+
+# --- Debian/Ubuntu/Pop!_OS (apt) ---
+- name: Install DaVinci Resolve dependencies on Debian-based systems
   when:
     - ansible_facts['system'] == 'Linux'
-    - detected_distribution == 'pop_os'
+    - ansible_facts['os_family'] == 'Debian'
   block:
     - name: Check current foreign architectures
       become: true
@@ -21,22 +41,6 @@
         update_cache: true
       changed_when: false
 
-    - name: Define DaVinci Resolve dependency candidates
-      set_fact:
-        davinci_dependency_candidates:
-          - ["libapr1"]
-          - ["libaprutil1"]
-          - ["libasound2t64", "libasound2"]
-          - ["libglib2.0-0t64", "libglib2.0-0"]
-          - ["libglu1-mesa"]
-          - ["libxcb-composite0"]
-          - ["libxcb-cursor0"]
-          - ["libxcb-damage0"]
-          - ["libapr1:i386"]
-          - ["libaprutil1:i386"]
-          - ["libasound2t64:i386", "libasound2:i386"]
-          - ["libglib2.0-0t64:i386", "libglib2.0-0:i386"]
-
     - name: Resolve DaVinci Resolve dependency packages
       ansible.builtin.shell: |
         set -euo pipefail
@@ -49,10 +53,10 @@
         exit 1
       args:
         executable: /bin/bash
-      register: davinci_dependency_resolution
+      register: davinci_apt_resolution
       changed_when: false
       failed_when: false
-      loop: "{{ davinci_dependency_candidates }}"
+      loop: "{{ davinci_apt_dependency_candidates }}"
       loop_control:
         loop_var: candidate_list
         label: "{{ candidate_list | join(' | ') }}"
@@ -60,19 +64,69 @@
     - name: Fail if any DaVinci dependency could not be resolved
       ansible.builtin.fail:
         msg: "Unable to resolve package candidate(s): {{ item.candidate_list | join(' | ') }}"
-      loop: "{{ davinci_dependency_resolution.results }}"
+      loop: "{{ davinci_apt_resolution.results }}"
       loop_control:
         label: "{{ item.candidate_list | join(' | ') }}"
       when: item.rc != 0
 
-    - name: Collect DaVinci Resolve package list
+    - name: Collect resolved apt package list
       set_fact:
-        davinci_packages_final: "{{ davinci_dependency_resolution.results | selectattr('rc', 'equalto', 0) | map(attribute='stdout') | map('trim') | list }}"
+        davinci_packages_final: >-
+          {{ davinci_apt_resolution.results
+             | selectattr('rc', 'equalto', 0)
+             | map(attribute='stdout')
+             | map('trim')
+             | list }}
 
-    - name: Install DaVinci Resolve Pop!_OS dependencies
+    - name: Install DaVinci Resolve apt dependencies
       become: true
       ansible.builtin.apt:
         name: "{{ davinci_packages_final }}"
         state: present
         update_cache: false
 
+# --- Fedora/RHEL (dnf) ---
+- name: Install DaVinci Resolve dependencies on Red Hat-based systems
+  when:
+    - ansible_facts['system'] == 'Linux'
+    - ansible_facts['os_family'] == 'RedHat'
+  block:
+    - name: Install DaVinci Resolve dnf dependencies
+      become: true
+      ansible.builtin.dnf:
+        name: "{{ davinci_dnf_packages }}"
+        state: present
+
+    - name: Deploy DaVinci Resolve wrapper script for Fedora
+      become: true
+      ansible.builtin.template:
+        src: davinci-resolve-wrapper.sh.j2
+        dest: "{{ davinci_wrapper_dest }}"
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Display Fedora wrapper script notice
+      ansible.builtin.debug:
+        msg: >-
+          Wrapper script installed at {{ davinci_wrapper_dest }}.
+          Use this to launch DaVinci Resolve (handles Python and Wayland compatibility).
+
+# --- Post-Install Instructions (all platforms) ---
+- name: Display DaVinci Resolve post-install instructions
+  ansible.builtin.debug:
+    msg: >-
+      DaVinci Resolve {{ 'Studio' if davinci_edition | default('free') == 'studio' else '(Free)' }}
+      must be downloaded manually from {{ davinci_download_url }}
+      (Blackmagic Design requires registration).
+      {% if ansible_facts['system'] == 'Darwin' %}
+      Open the .dmg and drag DaVinci Resolve to Applications.
+      {% elif ansible_facts['os_family'] | default('') == 'Debian' %}
+      Run the .run installer or install the .deb with: sudo dpkg -i ./DaVinci_Resolve_*_Linux.deb
+      {% elif ansible_facts['os_family'] | default('') == 'RedHat' %}
+      Extract the .zip, then run: chmod +x ./DaVinci_Resolve_*.run && sudo SKIP_PACKAGE_CHECK=1 ./DaVinci_Resolve_*.run --
+      Launch using: {{ davinci_wrapper_dest }}
+      {% endif %}
+      {% if davinci_edition | default('free') == 'studio' %}
+      STUDIO LICENSE: You will need your license key or USB dongle to activate.
+      {% endif %}

@@ -13,6 +13,7 @@ BLACKLIST_FILE="$HOME/.install_blacklist"
 # State Variables
 SKIP_AI_TOOLS=false
 INSTALL_DAVINCI=false
+DAVINCI_EDITION=""
 INSTALL_SYNERGY=false
 INSTALL_NVIDIA=false
 INSTALL_SYSTEM76=false
@@ -182,7 +183,17 @@ show_custom_menu() {
         echo ""
         echo -e "  ${CYAN}[1]${RESET} ${ICON_AI} Skip AI Tools .................... $(get_status_badge $SKIP_AI_TOOLS)"
         echo -e "  ${CYAN}[2]${RESET} ${ICON_CODE} Skip VS Code Extensions ........... $(get_status_badge $SKIP_VSCODE)"
-        echo -e "  ${CYAN}[3]${RESET} ${ICON_MEDIA} Install DaVinci Dependencies ...... $(get_status_badge $INSTALL_DAVINCI)"
+        if [[ "$INSTALL_DAVINCI" == "true" && -n "$DAVINCI_EDITION" ]]; then
+            local edition_label
+            if [[ "$DAVINCI_EDITION" == "studio" ]]; then
+                edition_label="${PURPLE}Studio${RESET}"
+            else
+                edition_label="Free"
+            fi
+            echo -e "  ${CYAN}[3]${RESET} ${ICON_MEDIA} Install DaVinci Resolve ........... ${GREEN}[ON]${RESET} ${DIM}(${edition_label}${DIM})${RESET}"
+        else
+            echo -e "  ${CYAN}[3]${RESET} ${ICON_MEDIA} Install DaVinci Resolve ........... ${DIM}[OFF]${RESET}"
+        fi
         echo -e "  ${CYAN}[4]${RESET} 🖥️  Install Synergy (KVM) .............. $(get_status_badge $INSTALL_SYNERGY)"
         echo -e "      ${DIM}Share keyboard & mouse across computers${RESET}"
         if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
@@ -207,7 +218,40 @@ show_custom_menu() {
                 if [[ "$SKIP_VSCODE" == "true" ]]; then SKIP_VSCODE=false; else SKIP_VSCODE=true; fi 
                 ;;
             3)
-                if [[ "$INSTALL_DAVINCI" == "true" ]]; then INSTALL_DAVINCI=false; else INSTALL_DAVINCI=true; fi
+                if [[ "$INSTALL_DAVINCI" == "true" ]]; then
+                    INSTALL_DAVINCI=false
+                    DAVINCI_EDITION=""
+                else
+                    echo ""
+                    echo -e "  ${BOLD}Select DaVinci Resolve edition:${RESET}"
+                    echo ""
+                    echo -e "  ${CYAN}[1]${RESET} DaVinci Resolve (Free)"
+                    echo -e "  ${CYAN}[2]${RESET} DaVinci Resolve Studio (Paid)"
+                    echo -e "  ${CYAN}[B]${RESET} Cancel"
+                    echo ""
+                    read -p "  Edition: " -n 1 -r edition_choice
+                    echo ""
+                    case $edition_choice in
+                        1)
+                            INSTALL_DAVINCI=true
+                            DAVINCI_EDITION="free"
+                            ;;
+                        2)
+                            echo ""
+                            echo -e "  ${YELLOW}${ICON_WARN} DaVinci Resolve Studio requires a valid license from Blackmagic Design.${RESET}"
+                            echo -e "  ${DIM}  You must own a license key or USB dongle to activate Studio.${RESET}"
+                            echo ""
+                            read -p "  Continue with Studio? [y/N]: " -n 1 -r studio_confirm
+                            echo ""
+                            if [[ "$studio_confirm" =~ ^[Yy]$ ]]; then
+                                INSTALL_DAVINCI=true
+                                DAVINCI_EDITION="studio"
+                            fi
+                            ;;
+                        [Bb])
+                            ;;
+                    esac
+                fi
                 ;;
             4)
                 if [[ "$INSTALL_SYNERGY" == "true" ]]; then INSTALL_SYNERGY=false; else INSTALL_SYNERGY=true; fi
@@ -268,6 +312,7 @@ run_installation() {
     ARGS=()
     if [[ "$SKIP_AI_TOOLS" == "true" ]]; then ARGS+=("--skip-ai-tools"); fi
     if [[ "$INSTALL_DAVINCI" == "true" ]]; then ARGS+=("--install-davinci"); fi
+    if [[ -n "$DAVINCI_EDITION" ]]; then ARGS+=("--davinci-edition" "$DAVINCI_EDITION"); fi
     if [[ "$INSTALL_SYNERGY" == "true" ]]; then ARGS+=("--install-synergy"); fi
     if [[ "$INSTALL_NVIDIA" == "true" ]]; then ARGS+=("--install-nvidia"); fi
     if [[ "$INSTALL_SYSTEM76" == "true" ]]; then ARGS+=("--install-system76"); fi

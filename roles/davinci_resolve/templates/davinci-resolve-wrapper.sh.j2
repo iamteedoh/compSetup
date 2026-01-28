@@ -1,0 +1,6 @@
+#!/bin/bash
+# Managed by Ansible - DaVinci Resolve launcher wrapper for Fedora
+# Resolves Python version and Wayland compatibility issues
+export LD_PRELOAD={{ davinci_python_preload }}
+export QT_QPA_PLATFORM=xcb
+exec {{ davinci_resolve_bin }} "$@"
