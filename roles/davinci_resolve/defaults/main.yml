@@ -38,3 +38,14 @@ davinci_python_preload: "/usr/lib64/libpython3.11.so.1.0"
 
 # Download URL for post-install instructions
 davinci_download_url: "https://www.blackmagicdesign.com/products/davinciresolve"
+
+# --- Automated Download & Install ---
+davinci_api_version_url: "https://www.blackmagicdesign.com/api/support/latest-stable-version"
+davinci_api_register_url: "https://www.blackmagicdesign.com/api/register/us/download"
+
+# Installation detection paths
+davinci_install_check_linux: "/opt/resolve/bin/resolve"
+davinci_install_check_macos: "/Applications/DaVinci Resolve/DaVinci Resolve.app"
+
+# Temp download location
+davinci_download_dir: "/tmp/davinci_resolve_download"

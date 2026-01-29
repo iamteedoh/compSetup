@@ -208,18 +208,20 @@ log_and_run "ansible-playbook $PLAYBOOK --extra-vars @\"$VARS_FILE\""
   rm -f "$VARS_FILE" 2>/dev/null || true
   echo -e "${GREEN}Playbook completed successfully.${NC}" | tee -a "$LOGFILE"
 
-  echo "" | tee -a "$LOGFILE"
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
-  echo -e "${YELLOW}  Powerlevel10k Setup${NC}" | tee -a "$LOGFILE"
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
-  echo -e "  To configure your Powerlevel10k prompt, run:" | tee -a "$LOGFILE"
-  echo "" | tee -a "$LOGFILE"
-  echo -e "    ${GREEN}p10k_setup.py${NC}" | tee -a "$LOGFILE"
-  echo "" | tee -a "$LOGFILE"
-  echo -e "  This lets you apply the default theme, run the interactive" | tee -a "$LOGFILE"
-  echo -e "  wizard, or load your own custom .p10k.zsh file." | tee -a "$LOGFILE"
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
-  echo "" | tee -a "$LOGFILE"
+  if [ ! -f "$HOME/.p10k.zsh" ]; then
+    echo "" | tee -a "$LOGFILE"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
+    echo -e "${YELLOW}  Powerlevel10k Setup${NC}" | tee -a "$LOGFILE"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
+    echo -e "  To configure your Powerlevel10k prompt, run:" | tee -a "$LOGFILE"
+    echo "" | tee -a "$LOGFILE"
+    echo -e "    ${GREEN}p10k_setup.py${NC}" | tee -a "$LOGFILE"
+    echo "" | tee -a "$LOGFILE"
+    echo -e "  This lets you apply the default theme, run the interactive" | tee -a "$LOGFILE"
+    echo -e "  wizard, or load your own custom .p10k.zsh file." | tee -a "$LOGFILE"
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" | tee -a "$LOGFILE"
+    echo "" | tee -a "$LOGFILE"
+  fi
 
 else
   echo -e "${RED}Playbook $PLAYBOOK not found. Exiting.${NC}" | tee -a "$LOGFILE"

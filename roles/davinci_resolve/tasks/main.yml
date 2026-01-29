@@ -1,9 +1,10 @@
 ---
-# DaVinci Resolve - Multi-Platform Dependency Installation & Setup
+# DaVinci Resolve - Multi-Platform Dependency Installation, Download & Install
 #
-# Installs platform-appropriate dependencies for DaVinci Resolve.
-# The application itself must be downloaded manually from Blackmagic Design
-# (registration required). Post-install instructions are displayed at the end.
+# 1. Installs platform-appropriate dependencies
+# 2. Downloads DaVinci Resolve via Blackmagic Design's public API
+# 3. Runs the installer (Linux .run / macOS .dmg+pkg)
+# Skips download+install if DaVinci Resolve is already installed.
 
 - name: Display DaVinci Resolve configuration
   ansible.builtin.debug:
@@ -112,21 +113,171 @@
           Wrapper script installed at {{ davinci_wrapper_dest }}.
           Use this to launch DaVinci Resolve (handles Python and Wayland compatibility).
 
-# --- Post-Install Instructions (all platforms) ---
-- name: Display DaVinci Resolve post-install instructions
+# --- Automated Download & Install ---
+- name: Derive DaVinci Resolve product identifiers
+  set_fact:
+    davinci_product_slug: "{{ 'davinci-resolve-studio' if davinci_edition | default('free') == 'studio' else 'davinci-resolve' }}"
+    davinci_product_name: "{{ 'DaVinci Resolve Studio' if davinci_edition | default('free') == 'studio' else 'DaVinci Resolve' }}"
+    davinci_api_platform: "{{ 'linux' if ansible_facts['system'] == 'Linux' else 'mac' }}"
+    davinci_install_check_path: "{{ davinci_install_check_macos if ansible_facts['system'] == 'Darwin' else davinci_install_check_linux }}"
+
+- name: Check if DaVinci Resolve is already installed
+  ansible.builtin.stat:
+    path: "{{ davinci_install_check_path }}"
+  register: davinci_already_installed
+
+- name: Display installation status
   ansible.builtin.debug:
     msg: >-
-      DaVinci Resolve {{ 'Studio' if davinci_edition | default('free') == 'studio' else '(Free)' }}
-      must be downloaded manually from {{ davinci_download_url }}
-      (Blackmagic Design requires registration).
-      {% if ansible_facts['system'] == 'Darwin' %}
-      Open the .dmg and drag DaVinci Resolve to Applications.
-      {% elif ansible_facts['os_family'] | default('') == 'Debian' %}
-      Run the .run installer or install the .deb with: sudo dpkg -i ./DaVinci_Resolve_*_Linux.deb
-      {% elif ansible_facts['os_family'] | default('') == 'RedHat' %}
-      Extract the .zip, then run: chmod +x ./DaVinci_Resolve_*.run && sudo SKIP_PACKAGE_CHECK=1 ./DaVinci_Resolve_*.run --
+      DaVinci Resolve is
+      {{ 'already installed — skipping download' if davinci_already_installed.stat.exists else 'not installed — will download and install' }}.
+
+- name: Download and install DaVinci Resolve
+  when: not davinci_already_installed.stat.exists
+  block:
+    - name: Create download directory
+      ansible.builtin.file:
+        path: "{{ davinci_download_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Query latest DaVinci Resolve version
+      ansible.builtin.uri:
+        url: "{{ davinci_api_version_url }}/{{ davinci_product_slug }}/{{ davinci_api_platform }}"
+        return_content: true
+      register: davinci_version_response
+
+    - name: Extract download ID and version from API response
+      set_fact:
+        davinci_download_id: "{{ davinci_version_response.json[davinci_api_platform].downloadId }}"
+        davinci_version_major: "{{ davinci_version_response.json[davinci_api_platform].major }}"
+        davinci_version_minor: "{{ davinci_version_response.json[davinci_api_platform].minor }}"
+        davinci_version_release: "{{ davinci_version_response.json[davinci_api_platform].releaseNum }}"
+
+    - name: Display version being downloaded
+      ansible.builtin.debug:
+        msg: "Downloading {{ davinci_product_name }} {{ davinci_version_major }}.{{ davinci_version_minor }}.{{ davinci_version_release }}"
+
+    - name: Request download URL from Blackmagic Design
+      ansible.builtin.uri:
+        url: "{{ davinci_api_register_url }}/{{ davinci_download_id }}"
+        method: POST
+        headers:
+          Accept: "application/json, text/plain, */*"
+          Origin: "https://www.blackmagicdesign.com"
+          Content-Type: "application/json;charset=UTF-8"
+          User-Agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+        body_format: json
+        body:
+          firstname: "Download"
+          lastname: "Only"
+          email: "download@example.com"
+          phone: "000-000-0000"
+          country: "us"
+          state: "California"
+          city: "Automation"
+          product: "{{ davinci_product_name }}"
+        return_content: true
+        status_code: 200
+      register: davinci_url_response
+
+    - name: Download DaVinci Resolve archive
+      ansible.builtin.get_url:
+        url: "{{ davinci_url_response.content }}"
+        dest: "{{ davinci_download_dir }}/davinci_resolve.zip"
+        mode: "0644"
+        timeout: 600
+
+    - name: Extract DaVinci Resolve archive
+      ansible.builtin.unarchive:
+        src: "{{ davinci_download_dir }}/davinci_resolve.zip"
+        dest: "{{ davinci_download_dir }}"
+        remote_src: true
+
+    # --- Linux Installation ---
+    - name: Find DaVinci Resolve installer (Linux)
+      when: ansible_facts['system'] == 'Linux'
+      ansible.builtin.find:
+        paths: "{{ davinci_download_dir }}"
+        patterns: "DaVinci_Resolve*.run"
+        recurse: true
+      register: davinci_run_installer
+
+    - name: Run DaVinci Resolve installer (Linux)
+      when:
+        - ansible_facts['system'] == 'Linux'
+        - davinci_run_installer.files | default([]) | length > 0
+      become: true
+      ansible.builtin.shell: |
+        set -euo pipefail
+        INSTALLER="{{ davinci_run_installer.files[0].path }}"
+        chmod +x "$INSTALLER"
+        SKIP_PACKAGE_CHECK=1 "$INSTALLER" -i -y -a
+      args:
+        executable: /bin/bash
+
+    # --- macOS Installation ---
+    - name: Find DaVinci Resolve DMG (macOS)
+      when: ansible_facts['system'] == 'Darwin'
+      ansible.builtin.find:
+        paths: "{{ davinci_download_dir }}"
+        patterns: "DaVinci_Resolve*.dmg"
+        recurse: true
+      register: davinci_dmg_file
+
+    - name: Install DaVinci Resolve from DMG (macOS)
+      when:
+        - ansible_facts['system'] == 'Darwin'
+        - davinci_dmg_file.files | default([]) | length > 0
+      become: true
+      ansible.builtin.shell: |
+        set -euo pipefail
+        DMG="{{ davinci_dmg_file.files[0].path }}"
+        MOUNT_POINT=$(hdiutil attach "$DMG" -nobrowse -quiet | tail -1 | awk '{print $3}')
+        PKG=$(find "$MOUNT_POINT" -name "*.pkg" -maxdepth 1 | head -1)
+        if [[ -n "$PKG" ]]; then
+          installer -pkg "$PKG" -target /
+        fi
+        hdiutil detach "$MOUNT_POINT" -quiet || true
+      args:
+        executable: /bin/bash
+
+    # --- Cleanup ---
+    - name: Clean up download directory
+      ansible.builtin.file:
+        path: "{{ davinci_download_dir }}"
+        state: absent
+
+- name: Verify DaVinci Resolve installation
+  ansible.builtin.stat:
+    path: "{{ davinci_install_check_path }}"
+  register: davinci_post_install_check
+
+- name: Display installation result
+  ansible.builtin.debug:
+    msg: >-
+      {{ davinci_product_name }} installation
+      {{ 'succeeded' if davinci_post_install_check.stat.exists else 'may require manual steps' }}.
+      {% if ansible_facts['system'] == 'Linux' and ansible_facts['os_family'] == 'RedHat' %}
       Launch using: {{ davinci_wrapper_dest }}
       {% endif %}
       {% if davinci_edition | default('free') == 'studio' %}
       STUDIO LICENSE: You will need your license key or USB dongle to activate.
+      {% endif %}
+
+# --- Fallback: Manual Download Instructions (only if automated install didn't succeed) ---
+- name: Display DaVinci Resolve manual download instructions
+  when: not (davinci_post_install_check.stat.exists | default(false))
+  ansible.builtin.debug:
+    msg: >-
+      DaVinci Resolve {{ 'Studio' if davinci_edition | default('free') == 'studio' else '(Free)' }}
+      can be downloaded manually from {{ davinci_download_url }}
+      (click "Download Only" to skip registration).
+      {% if ansible_facts['system'] == 'Darwin' %}
+      Open the .dmg and drag DaVinci Resolve to Applications.
+      {% elif ansible_facts['os_family'] | default('') == 'Debian' %}
+      Run the .run installer: chmod +x ./DaVinci_Resolve_*.run && sudo SKIP_PACKAGE_CHECK=1 ./DaVinci_Resolve_*.run -i -y -a
+      {% elif ansible_facts['os_family'] | default('') == 'RedHat' %}
+      Extract the .zip, then run: chmod +x ./DaVinci_Resolve_*.run && sudo SKIP_PACKAGE_CHECK=1 ./DaVinci_Resolve_*.run -i -y -a
+      Launch using: {{ davinci_wrapper_dest }}
       {% endif %}

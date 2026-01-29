@@ -62,17 +62,18 @@ By default, running `./bootstrap.sh` launches an interactive menu. On launch you
 |--------|-------------|
 | Skip AI Tools | Omit Gemini CLI, Claude Code, Antigravity |
 | Skip VS Code Extensions | Do not install VS Code extensions |
-| Install DaVinci Dependencies | Install DaVinci Resolve build dependencies (Linux) |
+| Install DaVinci Resolve | Download and install DaVinci Resolve (Free or Studio). Selecting an edition auto-starts installation |
 | Install Synergy (KVM) | Install Synergy for sharing keyboard/mouse across machines |
 | Install NVIDIA Drivers | Auto-detect GPU and install proprietary drivers (Fedora only) |
 | Install System76 Support | Firmware daemon, power management, DKMS modules (Fedora only) |
+| Customize Package Selection | Interactive TUI to cherry-pick which packages to install (filters by OS) |
 
 ### Command Line Flags (Headless Mode)
 You can skip the TUI for automation or specific tasks:
 ```bash
 ./bootstrap.sh --skip-ai-tools             # Skip AI tools
 ./bootstrap.sh --skip-vscode-extensions    # Skip VS Code extensions
-./bootstrap.sh --install-davinci           # Install DaVinci deps (Linux)
+./bootstrap.sh --install-davinci           # Download and install DaVinci Resolve
 ./bootstrap.sh --install-synergy           # Install Synergy (KVM)
 ./bootstrap.sh --install-nvidia            # Install NVIDIA drivers (Fedora)
 ./bootstrap.sh --install-system76          # Install System76 support (Fedora)
@@ -120,6 +121,17 @@ Cross-platform installation of Synergy for sharing a keyboard and mouse across m
 - Skips installation if Synergy is already present
 - Configurable version via `synergy_version` (default: `3.5.1`)
 
+### DaVinci Resolve (`davinci_resolve`)
+Automated download and installation of DaVinci Resolve (Free or Studio) across macOS and Linux.
+
+- Installs platform-specific dependencies (apt on Debian/Ubuntu, dnf on Fedora/RHEL)
+- Downloads the latest version automatically via Blackmagic Design's public API
+- Runs the installer non-interactively (`.run` on Linux, `.pkg` from `.dmg` on macOS)
+- Deploys a wrapper script on Fedora to handle Python 3.11 and Wayland (XCB) compatibility
+- Skips download and installation if DaVinci Resolve is already installed
+- Falls back to manual download instructions if automated install fails
+- Supports both Free and Studio editions (Studio requires a valid license key or USB dongle)
+
 ### Powerlevel10k (`powerlevel10k`)
 Installs and configures the Powerlevel10k zsh prompt theme.
 
@@ -150,7 +162,7 @@ Fedora/RHEL package management with intelligent validation.
 - **Browsers**: `google-chrome`, `brave`
 - **Editors**: `visual-studio-code` (with extensions), `typora`, `ghostty`
 - **Privacy/Mail**: `proton-mail`, `proton-pass`, `bitwarden-cli`
-- **Media**: `vlc`, `handbrake`, `obs-studio`, `davinci-resolve` (deps)
+- **Media**: `vlc`, `handbrake`, `obs-studio`, `davinci-resolve`
 - **Comm**: `signal-desktop`, `discord`, `slack`, `element`, `session`
 - **Infrastructure**: `docker`, `podman-desktop`, `minikube`, `helm`
 - **KVM**: `synergy` (optional, cross-platform)
@@ -168,7 +180,7 @@ Fedora/RHEL package management with intelligent validation.
 ## Post-Install
 
 ### Powerlevel10k
-After installation completes, a banner is displayed reminding you to configure your Powerlevel10k prompt. Run the helper script:
+If Powerlevel10k has not been configured yet (no `~/.p10k.zsh` file), a banner is displayed after installation reminding you to configure your prompt. Run the helper script:
 ```bash
 p10k_setup.py
 ```

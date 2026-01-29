@@ -57,7 +57,14 @@
             'cli_tools': (package_manifest.cli_tools | rejectattr('name', 'in', omit_list) | list),
             'gui_apps': (package_manifest.gui_apps | rejectattr('name', 'in', omit_list) | list),
             'flatpak_apps': (package_manifest.flatpak_apps | reject('in', omit_list) | list),
-            'vscode_extensions': (package_manifest.vscode_extensions | reject('in', omit_list) | list)
+            'vscode_extensions': (package_manifest.vscode_extensions | reject('in', omit_list) | list),
+            'fonts': (package_manifest.fonts | rejectattr('name', 'in', omit_list) | list),
+            'apt_only': package_manifest.apt_only | combine({
+                'common': (package_manifest.apt_only.common | reject('in', omit_list) | list)
+            }),
+            'dnf_only': package_manifest.dnf_only | combine({
+                'common': (package_manifest.dnf_only.common | reject('in', omit_list) | list)
+            })
         }) }}"
 
     - name: Build Homebrew package targets

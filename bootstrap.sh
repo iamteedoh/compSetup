@@ -19,6 +19,7 @@ INSTALL_NVIDIA=false
 INSTALL_SYSTEM76=false
 SKIP_VSCODE=false
 OMIT_LIST=""
+PACKAGE_SELECTOR_OMIT=""
 SELECTED_DISTRO=""    # "fedora", "ubuntu", or "" (macOS)
 
 # --- Colors & Styles ---
@@ -48,6 +49,9 @@ ICON_MEDIA=""
 ICON_PKG=""
 ICON_WARN=""
 ICON_CHECK=""
+ICON_SYNC=""
+ICON_GPU=""
+ICON_LAPTOP=""
 
 # --- Helper Functions ---
 
@@ -78,6 +82,26 @@ get_status_badge() {
         printf "${GREEN}[ON]${RESET}"
     else
         printf "${DIM}[OFF]${RESET}"
+    fi
+}
+
+# Print an aligned menu line with dot leader
+# Usage: print_menu_line key icon label badge [subtitle]
+# All icons are assumed to be 2 display cells wide (standard emoji).
+# For 1-cell nerd font icons, pass icon_width=1 as $6 to add padding.
+print_menu_line() {
+    local key="$1" icon="$2" label="$3" badge="$4" subtitle="${5:-}"
+    local icon_width="${6:-2}"
+    local icon_pad=""
+    if (( icon_width < 2 )); then icon_pad=" "; fi
+    local target=35
+    local pad=$((target - ${#label}))
+    if (( pad < 3 )); then pad=3; fi
+    printf -v dots '%*s' "$pad" ''
+    dots=${dots// /.}
+    echo -e "  ${CYAN}[${key}]${RESET} ${icon}${icon_pad}  ${label} ${DIM}${dots}${RESET} ${badge}"
+    if [[ -n "$subtitle" ]]; then
+        echo -e "           ${DIM}${subtitle}${RESET}"
     fi
 }
 
@@ -157,18 +181,18 @@ show_main_menu() {
     echo ""
     echo -e "  ${BOLD}Select an action:${RESET}"
     echo ""
-    echo -e "  ${CYAN}[1]${RESET} 🚀 Install Everything (Standard)"
-    echo -e "  ${CYAN}[2]${RESET} 🍃 Install Everything (No AI Tools)"
+    echo -e "  ${CYAN}[1]${RESET} 🚀  Install Everything (Standard)"
+    echo -e "  ${CYAN}[2]${RESET} 🍃  Install Everything (No AI Tools)"
     if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
-        echo -e "  ${CYAN}[3]${RESET} 🖥️  Install Everything + System76 Support"
-        echo -e "  ${CYAN}[4]${RESET} 🎮 Install NVIDIA Drivers Only"
-        echo -e "  ${CYAN}[5]${RESET} ⚙️  Custom Installation / Configure Options"
-        echo -e "  ${CYAN}[6]${RESET} 📝 Edit Package Blacklist"
+        echo -e "  ${CYAN}[3]${RESET} 💻  Install Everything + System76 Support"
+        echo -e "  ${CYAN}[4]${RESET} 🎮  Install NVIDIA Drivers Only"
+        echo -e "  ${CYAN}[5]${RESET} 🔧  Custom Installation / Configure Options"
+        echo -e "  ${CYAN}[6]${RESET} 📝  Edit Package Blacklist"
     else
-        echo -e "  ${CYAN}[3]${RESET} ⚙️  Custom Installation / Configure Options"
-        echo -e "  ${CYAN}[4]${RESET} 📝 Edit Package Blacklist"
+        echo -e "  ${CYAN}[3]${RESET} 🔧  Custom Installation / Configure Options"
+        echo -e "  ${CYAN}[4]${RESET} 📝  Edit Package Blacklist"
     fi
-    echo -e "  ${CYAN}[Q]${RESET} ❌ Exit"
+    echo -e "  ${CYAN}[Q]${RESET} ❌  Exit"
     echo ""
     draw_line "─"
     echo -e "${DIM}  Use number keys to select.${RESET}"
@@ -181,8 +205,9 @@ show_custom_menu() {
         echo ""
         echo -e "  ${BOLD}Custom Configuration:${RESET}"
         echo ""
-        echo -e "  ${CYAN}[1]${RESET} ${ICON_AI} Skip AI Tools .................... $(get_status_badge $SKIP_AI_TOOLS)"
-        echo -e "  ${CYAN}[2]${RESET} ${ICON_CODE} Skip VS Code Extensions ........... $(get_status_badge $SKIP_VSCODE)"
+        print_menu_line "1" "${ICON_AI}" "Skip AI Tools" "$(get_status_badge $SKIP_AI_TOOLS)"
+        print_menu_line "2" "${ICON_CODE}" "Skip VS Code Extensions" "$(get_status_badge $SKIP_VSCODE)" "" 1
+        local davinci_badge
         if [[ "$INSTALL_DAVINCI" == "true" && -n "$DAVINCI_EDITION" ]]; then
             local edition_label
             if [[ "$DAVINCI_EDITION" == "studio" ]]; then
@@ -190,21 +215,29 @@ show_custom_menu() {
             else
                 edition_label="Free"
             fi
-            echo -e "  ${CYAN}[3]${RESET} ${ICON_MEDIA} Install DaVinci Resolve ........... ${GREEN}[ON]${RESET} ${DIM}(${edition_label}${DIM})${RESET}"
+            davinci_badge="${GREEN}[ON]${RESET} ${DIM}(${edition_label}${DIM})${RESET}"
         else
-            echo -e "  ${CYAN}[3]${RESET} ${ICON_MEDIA} Install DaVinci Resolve ........... ${DIM}[OFF]${RESET}"
+            davinci_badge="${DIM}[OFF]${RESET}"
         fi
-        echo -e "  ${CYAN}[4]${RESET} 🖥️  Install Synergy (KVM) .............. $(get_status_badge $INSTALL_SYNERGY)"
-        echo -e "      ${DIM}Share keyboard & mouse across computers${RESET}"
+        print_menu_line "3" "${ICON_MEDIA}" "Install DaVinci Resolve" "$davinci_badge" "" 1
+        print_menu_line "4" "${ICON_SYNC}" "Install Synergy (KVM)" "$(get_status_badge $INSTALL_SYNERGY)" "Share keyboard & mouse across computers" 1
         if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
-            echo -e "  ${CYAN}[5]${RESET} 🎮 Install NVIDIA Drivers ............ $(get_status_badge $INSTALL_NVIDIA)"
-            echo -e "      ${DIM}Auto-detects GPU generation${RESET}"
-            echo -e "  ${CYAN}[6]${RESET} 💻 Install System76 Support .......... $(get_status_badge $INSTALL_SYSTEM76)"
-            echo -e "      ${DIM}System76 firmware, power, DKMS${RESET}"
+            print_menu_line "5" "${ICON_GPU}" "Install NVIDIA Drivers" "$(get_status_badge $INSTALL_NVIDIA)" "Auto-detects GPU generation" 1
+            print_menu_line "6" "${ICON_LAPTOP}" "Install System76 Support" "$(get_status_badge $INSTALL_SYSTEM76)" "System76 firmware, power, DKMS" 1
         fi
         echo ""
-        echo -e "  ${CYAN}[R]${RESET} ▶️  Run Installation with these settings"
-        echo -e "  ${CYAN}[B]${RESET} 🔙 Back to Main Menu"
+        local pkg_badge
+        if [[ -n "$PACKAGE_SELECTOR_OMIT" ]]; then
+            local deselected_count
+            deselected_count=$(echo "$PACKAGE_SELECTOR_OMIT" | wc -w | tr -d ' ')
+            pkg_badge="${YELLOW}[${deselected_count} deselected]${RESET}"
+        else
+            pkg_badge="${DIM}[All selected]${RESET}"
+        fi
+        print_menu_line "P" "${ICON_PKG}" "Customize Package Selection" "$pkg_badge" "" 1
+        echo ""
+        echo -e "  ${CYAN}[R]${RESET}    Run Installation with these settings"
+        echo -e "  ${CYAN}[B]${RESET}    Back to Main Menu"
         echo ""
         draw_line "─"
         read -p "  Select option: " -n 1 -r custom_choice
@@ -235,6 +268,8 @@ show_custom_menu() {
                         1)
                             INSTALL_DAVINCI=true
                             DAVINCI_EDITION="free"
+                            run_installation
+                            return
                             ;;
                         2)
                             echo ""
@@ -246,6 +281,8 @@ show_custom_menu() {
                             if [[ "$studio_confirm" =~ ^[Yy]$ ]]; then
                                 INSTALL_DAVINCI=true
                                 DAVINCI_EDITION="studio"
+                                run_installation
+                                return
                             fi
                             ;;
                         [Bb])
@@ -265,6 +302,9 @@ show_custom_menu() {
                 if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
                     if [[ "$INSTALL_SYSTEM76" == "true" ]]; then INSTALL_SYSTEM76=false; else INSTALL_SYSTEM76=true; fi
                 fi
+                ;;
+            [Pp])
+                run_package_selector
                 ;;
             [Rr])
                 run_installation
@@ -300,6 +340,27 @@ edit_blacklist() {
     # Reload omit list logic handled in run_installation
 }
 
+# Package Selector
+run_package_selector() {
+    local os_flag=""
+    case "$SELECTED_DISTRO" in
+        fedora) os_flag="fedora" ;;
+        ubuntu) os_flag="ubuntu" ;;
+        macos)  os_flag="macos" ;;
+    esac
+
+    local result
+    result=$(python3 "$SCRIPT_DIR/scripts/package_selector.py" \
+        --packages-file "$SCRIPT_DIR/packages.yml" \
+        --os "$os_flag")
+    local exit_code=$?
+
+    if [[ $exit_code -eq 0 ]]; then
+        PACKAGE_SELECTOR_OMIT="$result"
+    fi
+    # exit_code 2 = cancelled, do nothing
+}
+
 # Run Logic
 run_installation() {
     # Prepare Omit List from file
@@ -307,6 +368,13 @@ run_installation() {
     if [[ -f "$BLACKLIST_FILE" ]]; then
         OMIT_LIST=$(grep -v '^\s*$' "$BLACKLIST_FILE" | tr '\n' ' ')
     fi
+
+    # Merge package selector deselections
+    if [[ -n "$PACKAGE_SELECTOR_OMIT" ]]; then
+        OMIT_LIST="$OMIT_LIST $PACKAGE_SELECTOR_OMIT"
+    fi
+    # Deduplicate
+    OMIT_LIST=$(echo "$OMIT_LIST" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/^ *//;s/ *$//')
 
     # Build Arguments
     ARGS=()
