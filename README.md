@@ -86,10 +86,16 @@ Flags can be combined:
 ```
 
 ### Persistent Package Blacklist
-Avoid installing specific tools by adding them to your blacklist.
-- **Location**: `~/.install_blacklist` (created in your Home directory).
+The blacklist lets you permanently exclude packages from installation. Unlike the Package Selector (`[P]`), which only applies to the current session, blacklisted packages are skipped on **every** future run of `bootstrap.sh` until you remove them from the file.
+
+- **Location**: `~/.install_blacklist` (one package name per line, matching the `name` field in `packages.yml`).
+- **How to edit**: Select "Edit Package Blacklist" from the menu. The file opens in your default editor (`$EDITOR`, defaults to `nano` if unset). A comment block at the top of the file explains the format.
+- **Example**: To never install Discord and Slack, add them to the file:
+  ```
+  discord
+  slack
+  ```
 - **Git Safety**: This file is kept locally and is never tracked by git.
-- **Feedback**: Orange text confirms when a package is newly added; purple text confirms if a package was already blacklisted.
 
 ## Roles
 

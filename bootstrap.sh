@@ -318,6 +318,20 @@ show_custom_menu() {
 }
 
 # Edit Blacklist
+BLACKLIST_HEADER='# Package Blacklist
+#
+# Packages listed here will be permanently skipped during installation.
+# Add one package name per line. These are matched against the "name"
+# field in packages.yml (e.g. "discord", "slack", "obs-studio").
+#
+# This file is persistent — packages listed here are excluded on every
+# run of bootstrap.sh, unlike the Package Selector [P] which only
+# applies to a single session.
+#
+# Lines starting with # are comments and are ignored.
+# Blank lines are ignored.
+'
+
 edit_blacklist() {
     draw_header
     echo ""
@@ -325,18 +339,23 @@ edit_blacklist() {
     echo -e "  Packages listed in ${YELLOW}${BLACKLIST_FILE}${RESET} will be skipped."
     echo ""
     if [[ ! -f "$BLACKLIST_FILE" ]]; then
-        touch "$BLACKLIST_FILE"
+        echo -n "$BLACKLIST_HEADER" > "$BLACKLIST_FILE"
         echo ""
         echo -e "  ${GREEN}${ICON_CHECK} Created new blacklist file at ${RESET}${BOLD}${BLACKLIST_FILE}${RESET}"
-        echo -e "  ${DIM}This file tracks packages you want to persistently omit.${RESET}"
         echo ""
         sleep 2
+    elif ! head -1 "$BLACKLIST_FILE" | grep -q '^# Package Blacklist'; then
+        # Existing file missing the header — prepend it
+        local existing
+        existing=$(cat "$BLACKLIST_FILE")
+        echo -n "$BLACKLIST_HEADER" > "$BLACKLIST_FILE"
+        echo "$existing" >> "$BLACKLIST_FILE"
     fi
-    
+
     echo -e "  Opening editor (${EDITOR:-nano})..."
     sleep 1
     ${EDITOR:-nano} "$BLACKLIST_FILE"
-    
+
     # Reload omit list logic handled in run_installation
 }
 
@@ -366,7 +385,7 @@ run_installation() {
     # Prepare Omit List from file
     OMIT_LIST=""
     if [[ -f "$BLACKLIST_FILE" ]]; then
-        OMIT_LIST=$(grep -v '^\s*$' "$BLACKLIST_FILE" | tr '\n' ' ')
+        OMIT_LIST=$(grep -v '^\s*#' "$BLACKLIST_FILE" | grep -v '^\s*$' | tr '\n' ' ')
     fi
 
     # Merge package selector deselections
@@ -466,7 +485,7 @@ if [[ $# -gt 0 ]]; then
     # Read blacklist content to pass as --omit-list to inner scripts
     OMIT_CONTENT=""
     if [[ -f "$BLACKLIST_FILE" ]]; then
-        OMIT_CONTENT=$(grep -v '^\s*$' "$BLACKLIST_FILE" | tr '\n' ' ')
+        OMIT_CONTENT=$(grep -v '^\s*#' "$BLACKLIST_FILE" | grep -v '^\s*$' | tr '\n' ' ')
     fi
     
     if [[ -n "$OMIT_CONTENT" ]]; then
