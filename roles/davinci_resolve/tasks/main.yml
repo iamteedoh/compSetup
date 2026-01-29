@@ -248,6 +248,40 @@
         path: "{{ davinci_download_dir }}"
         state: absent
 
+# --- Linux: Fix bundled GLib conflict on modern distros ---
+# DaVinci Resolve bundles GLib 2.68 but Fedora 43+ ships GLib 2.80+.
+# System Pango requires g_once_init_leave_pointer (GLib 2.80+), which is
+# missing from the bundled version. Moving the bundled GLib libs out of
+# the way forces Resolve to use the system GLib instead.
+# Runs unconditionally (not just on fresh installs) so existing installs get fixed too.
+- name: Disable bundled GLib libraries (fixes Pango symbol conflict)
+  when:
+    - ansible_facts['system'] == 'Linux'
+    - davinci_install_check_linux is defined
+  become: true
+  ansible.builtin.shell: |
+    set -euo pipefail
+    LIBS_DIR="/opt/resolve/libs"
+    DISABLED_DIR="${LIBS_DIR}/disabled"
+    if [ ! -d "$LIBS_DIR" ]; then
+      echo "DaVinci Resolve libs directory not found — skipping"
+      exit 0
+    fi
+    if ls "${LIBS_DIR}"/libglib-2.0.so* &>/dev/null; then
+      mkdir -p "$DISABLED_DIR"
+      mv "${LIBS_DIR}"/libglib-2.0.so* "$DISABLED_DIR/"
+      mv "${LIBS_DIR}"/libgio-2.0.so* "$DISABLED_DIR/"
+      mv "${LIBS_DIR}"/libgmodule-2.0.so* "$DISABLED_DIR/"
+      mv "${LIBS_DIR}"/libgobject-2.0.so* "$DISABLED_DIR/"
+      echo "Moved bundled GLib libraries to ${DISABLED_DIR}"
+    else
+      echo "Bundled GLib libraries already removed or not present"
+    fi
+  args:
+    executable: /bin/bash
+  register: davinci_glib_fix
+  changed_when: "'Moved bundled' in davinci_glib_fix.stdout"
+
 - name: Verify DaVinci Resolve installation
   ansible.builtin.stat:
     path: "{{ davinci_install_check_path }}"
