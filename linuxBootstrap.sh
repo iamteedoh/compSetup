@@ -203,10 +203,22 @@ fi
 REBOOT_NEEDED=false
 REBOOT_REASONS=()
 
-# Check if NVIDIA drivers were installed
-if [[ "$INSTALL_NVIDIA" == "true" ]]; then
-  REBOOT_NEEDED=true
-  REBOOT_REASONS+=("NVIDIA drivers were installed")
+# Check if NVIDIA drivers need a reboot (module installed but not loaded)
+if [[ "$INSTALL_NVIDIA" == "true" ]] && command -v modinfo &>/dev/null; then
+  NVIDIA_MODULE_INSTALLED=false
+  NVIDIA_MODULE_LOADED=false
+  if modinfo nvidia &>/dev/null; then
+    NVIDIA_MODULE_INSTALLED=true
+  fi
+  # Note: grep -q cannot be used here because pipefail + SIGPIPE causes
+  # lsmod to return non-zero when grep closes the pipe early.
+  if lsmod | grep '^nvidia ' >/dev/null 2>&1 || false; then
+    NVIDIA_MODULE_LOADED=true
+  fi
+  if [[ "$NVIDIA_MODULE_INSTALLED" == "true" && "$NVIDIA_MODULE_LOADED" == "false" ]]; then
+    REBOOT_NEEDED=true
+    REBOOT_REASONS+=("NVIDIA drivers were installed")
+  fi
 fi
 
 # Check if kernel was upgraded (running kernel != latest installed)

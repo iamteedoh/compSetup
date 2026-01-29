@@ -352,9 +352,14 @@ edit_blacklist() {
         echo "$existing" >> "$BLACKLIST_FILE"
     fi
 
-    echo -e "  Opening editor (${EDITOR:-nano})..."
+    local bl_editor="${EDITOR:-nano}"
+    # Prefer nvim if available
+    if command -v nvim &>/dev/null; then
+        bl_editor="nvim"
+    fi
+    echo -e "  Opening editor (${bl_editor})..."
     sleep 1
-    ${EDITOR:-nano} "$BLACKLIST_FILE"
+    $bl_editor "$BLACKLIST_FILE"
 
     # Reload omit list logic handled in run_installation
 }

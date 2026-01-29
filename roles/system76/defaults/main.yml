@@ -11,8 +11,12 @@ system76_dkms_packages:
 system76_services_enable:
   - system76-firmware-daemon
   - com.system76.PowerDaemon.service
-  - system76-power-wake
   - dkms
+
+# Oneshot services — enable at boot but don't try to "start" them
+# (they run once and exit; state: started would re-trigger every run)
+system76_services_enable_only:
+  - system76-power-wake
 
 system76_services_mask:
   - power-profiles-daemon.service

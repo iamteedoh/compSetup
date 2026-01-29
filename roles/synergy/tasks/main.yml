@@ -1,6 +1,18 @@
 ---
 - name: Check if Synergy is already installed
-  ansible.builtin.command: which synergy
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if [ "{{ ansible_facts['system'] }}" = "Darwin" ]; then
+      brew list --cask synergy &>/dev/null
+    elif command -v rpm &>/dev/null; then
+      rpm -q synergy &>/dev/null
+    elif command -v dpkg &>/dev/null; then
+      dpkg -s synergy &>/dev/null 2>&1
+    else
+      exit 1
+    fi
+  args:
+    executable: /bin/bash
   register: synergy_check
   changed_when: false
   failed_when: false

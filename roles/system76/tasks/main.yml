@@ -36,6 +36,14 @@
   loop: "{{ system76_services_enable }}"
   failed_when: false
 
+- name: Enable System76 oneshot services (boot-time only)
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+  loop: "{{ system76_services_enable_only }}"
+  failed_when: false
+
 # --- Mask Conflicting Services ---
 - name: Mask power-profiles-daemon (conflicts with System76 power management)
   become: true
