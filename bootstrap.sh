@@ -381,6 +381,59 @@ run_package_selector() {
 
     if [[ $exit_code -eq 0 ]]; then
         PACKAGE_SELECTOR_OMIT="$result"
+        # If packages were deselected, offer to add them to the permanent blacklist
+        if [[ -n "$result" ]]; then
+            local deselected_count
+            deselected_count=$(echo "$result" | wc -w | tr -d ' ')
+            draw_header
+            echo ""
+            echo -e "  ${BOLD}${deselected_count} package(s) deselected:${RESET}"
+            echo ""
+            for pkg in $result; do
+                echo -e "    ${DIM}-${RESET} $pkg"
+            done
+            echo ""
+            echo -e "  ${YELLOW}Would you like these packages to ${BOLD}always${RESET}${YELLOW} be skipped?${RESET}"
+            echo -e "  ${DIM}This adds them to your permanent blacklist at${RESET}"
+            echo -e "  ${DIM}${BLACKLIST_FILE}${RESET}"
+            echo ""
+            echo -e "  ${CYAN}[Y]${RESET}  Yes, always skip these packages"
+            echo -e "  ${CYAN}[N]${RESET}  No, skip only for this session"
+            echo ""
+            draw_line "─"
+            while true; do
+                read -p "  Selection: " -n 1 -r bl_choice
+                echo ""
+                case $bl_choice in
+                    [Yy])
+                        # Ensure blacklist file exists with header
+                        if [[ ! -f "$BLACKLIST_FILE" ]]; then
+                            echo -n "$BLACKLIST_HEADER" > "$BLACKLIST_FILE"
+                        fi
+                        local added=0
+                        for pkg in $result; do
+                            if ! grep -q "^${pkg}$" "$BLACKLIST_FILE" 2>/dev/null; then
+                                echo "$pkg" >> "$BLACKLIST_FILE"
+                                ((added++))
+                            fi
+                        done
+                        echo ""
+                        echo -e "  ${GREEN}${ICON_CHECK} Added ${added} package(s) to the permanent blacklist.${RESET}"
+                        echo -e "  ${DIM}You can edit it later with the Blacklist Editor from the menu.${RESET}"
+                        echo ""
+                        echo -e "  ${DIM}Press Enter to continue...${RESET}"
+                        read -r
+                        break
+                        ;;
+                    [Nn])
+                        break
+                        ;;
+                    *)
+                        echo -e "  ${DIM}Press Y or N${RESET}"
+                        ;;
+                esac
+            done
+        fi
     elif [[ $exit_code -ne 2 ]]; then
         # exit_code 2 = cancelled by user, anything else is an error
         draw_header
