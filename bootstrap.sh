@@ -374,15 +374,32 @@ run_package_selector() {
     esac
 
     local result
+    local stderr_file
+    stderr_file=$(mktemp)
+
     result=$(python3 "$SCRIPT_DIR/scripts/package_selector.py" \
         --packages-file "$SCRIPT_DIR/packages.yml" \
-        --os "$os_flag")
+        --os "$os_flag" 2>"$stderr_file")
     local exit_code=$?
 
     if [[ $exit_code -eq 0 ]]; then
         PACKAGE_SELECTOR_OMIT="$result"
+    elif [[ $exit_code -ne 2 ]]; then
+        # exit_code 2 = cancelled by user, anything else is an error
+        draw_header
+        echo ""
+        echo -e "  ${RED}${ICON_WARN} Package selector failed (exit code: $exit_code)${RESET}"
+        echo ""
+        if [[ -s "$stderr_file" ]]; then
+            echo -e "  ${DIM}Error output:${RESET}"
+            echo ""
+            sed 's/^/    /' "$stderr_file"
+            echo ""
+        fi
+        echo -e "  ${DIM}Press Enter to continue...${RESET}"
+        read -r
     fi
-    # exit_code 2 = cancelled, do nothing
+    rm -f "$stderr_file"
 }
 
 # Run Logic
@@ -513,8 +530,47 @@ if [[ $# -gt 0 ]]; then
     exit 0
 fi
 
+# Work Computer Warning
+show_work_computer_warning() {
+    draw_header
+    echo ""
+    echo -e "  ${RED}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+    echo -e "  ${RED}${BOLD}  ${ICON_WARN}  WARNING  ${ICON_WARN}${RESET}"
+    echo -e "  ${RED}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+    echo ""
+    echo -e "  ${YELLOW}If you are installing this on a ${BOLD}work computer${RESET}${YELLOW}, it is${RESET}"
+    echo -e "  ${YELLOW}suggested that you choose the custom installation and${RESET}"
+    echo -e "  ${YELLOW}select which packages you'd like installed explicitly${RESET}"
+    echo -e "  ${YELLOW}so that packages that could violate your employer's${RESET}"
+    echo -e "  ${YELLOW}policy are not installed accidentally.${RESET}"
+    echo ""
+    echo -e "  ${RED}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+    echo ""
+    echo -e "  ${CYAN}[P]${RESET}  Go to ${BOLD}Package Customization${RESET} now"
+    echo -e "  ${CYAN}[M]${RESET}  Continue to the ${BOLD}Main Menu${RESET}"
+    echo ""
+    draw_line "─"
+    while true; do
+        read -p "  Selection: " -n 1 -r warn_choice
+        echo ""
+        case $warn_choice in
+            [Pp])
+                run_package_selector
+                return
+                ;;
+            [Mm])
+                return
+                ;;
+            *)
+                echo -e "  ${DIM}Press P or M${RESET}"
+                ;;
+        esac
+    done
+}
+
 # --- Main Loop (TUI Mode) ---
 show_distro_menu
+show_work_computer_warning
 
 while true; do
     show_main_menu

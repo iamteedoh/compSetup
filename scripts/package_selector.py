@@ -57,9 +57,10 @@ except ImportError:
             lines = fh.readlines()
 
         root = {}
-        stack = [(root, -1)]  # (container, indent)
-        pending_key = None
-        pending_indent = -1
+        # stack entries: (container, indent, parent_dict, parent_key)
+        # parent_dict and parent_key allow replacing a dict with a list
+        # when we discover list items under a mapping key.
+        stack = [(root, -1, None, None)]
 
         for raw_line in lines:
             stripped = raw_line.rstrip("\n")
@@ -75,19 +76,23 @@ except ImportError:
             while len(stack) > 1 and indent <= stack[-1][1]:
                 stack.pop()
 
-            current = stack[-1][0]
+            current, _, _, _ = stack[-1]
 
             # Handle list item
             if content.startswith("- "):
                 item_content = content[2:].strip()
 
-                # If current container is a dict and we have a pending key,
-                # we need to create a list for it
-                if isinstance(current, dict) and pending_key is not None:
-                    if pending_key not in current or not isinstance(current[pending_key], list):
-                        current[pending_key] = []
-                    target_list = current[pending_key]
-                elif isinstance(current, list):
+                # If current is a dict placeholder (empty dict created for a
+                # key with no inline value), convert it to a list on the parent
+                if isinstance(current, dict) and len(current) == 0:
+                    _, s_indent, parent, pkey = stack[-1]
+                    if parent is not None and pkey is not None:
+                        new_list = []
+                        parent[pkey] = new_list
+                        stack[-1] = (new_list, s_indent, parent, pkey)
+                        current = new_list
+
+                if isinstance(current, list):
                     target_list = current
                 else:
                     continue
@@ -101,7 +106,7 @@ except ImportError:
                     if val:
                         new_map[key] = _parse_scalar(val)
                     target_list.append(new_map)
-                    stack.append((new_map, indent + 2))
+                    stack.append((new_map, indent, None, None))
                 else:
                     target_list.append(_parse_scalar(item_content))
 
@@ -114,12 +119,10 @@ except ImportError:
                     if isinstance(current, dict):
                         current[key] = _parse_scalar(val)
                 else:
-                    # Key with no value -> could be a dict or list (determined by children)
+                    # Key with no value -> placeholder dict (may become list)
                     if isinstance(current, dict):
                         current[key] = {}
-                        pending_key = key
-                        pending_indent = indent
-                        stack.append((current[key], indent))
+                        stack.append((current[key], indent, current, key))
 
         return root
 

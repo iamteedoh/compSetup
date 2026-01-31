@@ -3,7 +3,7 @@
   ansible.builtin.shell: |
     set -euo pipefail
     if [ "{{ ansible_facts['system'] }}" = "Darwin" ]; then
-      brew list --cask synergy &>/dev/null
+      test -d /Applications/Synergy.app
     elif command -v rpm &>/dev/null; then
       rpm -q synergy &>/dev/null
     elif command -v dpkg &>/dev/null; then
@@ -17,13 +17,83 @@
   changed_when: false
   failed_when: false
 
-- name: Install Synergy on macOS via Homebrew
+- name: Install Synergy on macOS
   when:
     - ansible_facts['system'] == 'Darwin'
     - synergy_check.rc != 0
-  ansible.builtin.command: brew install --cask synergy
-  register: synergy_brew
-  changed_when: "'already installed' not in (synergy_brew.stderr | default(''))"
+  block:
+    - name: Determine macOS architecture for Synergy download
+      ansible.builtin.set_fact:
+        synergy_macos_arch: >-
+          {%- if ansible_facts['architecture'] == 'arm64' -%}
+            arm64
+          {%- else -%}
+            x64
+          {%- endif -%}
+
+    - name: Set Synergy macOS filename and URL variables
+      ansible.builtin.set_fact:
+        synergy_macos_filename: "synergy-{{ synergy_version }}-macos-{{ synergy_macos_arch }}.dmg"
+        synergy_macos_landing_url: "https://symless.com/synergy/download/package/synergy-personal-v3/macos/synergy-{{ synergy_version }}-macos-{{ synergy_macos_arch }}.dmg"
+        synergy_macos_download_dest: "/tmp/synergy-{{ synergy_version }}.dmg"
+
+    - name: Display Synergy macOS download details
+      ansible.builtin.debug:
+        msg: "Fetching download token from: {{ synergy_macos_landing_url }}"
+
+    - name: Fetch Synergy download token from landing page (macOS)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        curl -sL "{{ synergy_macos_landing_url }}" | sed -n 's/.*token["\]*:["\]*\([^"\\]*\).*/\1/p' | head -1
+      args:
+        executable: /bin/bash
+      register: synergy_macos_token_result
+      changed_when: false
+
+    - name: Fail if macOS download token could not be extracted
+      ansible.builtin.fail:
+        msg: >-
+          Could not extract Synergy download token from the landing page.
+          The download page structure may have changed, or the version
+          {{ synergy_version }} may not be available for macOS {{ synergy_macos_arch }}.
+      when: synergy_macos_token_result.stdout | trim | length == 0
+
+    - name: Download Synergy DMG via API
+      ansible.builtin.get_url:
+        url: "https://symless.com/synergy/api/download/{{ synergy_macos_filename }}?token={{ synergy_macos_token_result.stdout | trim }}"
+        dest: "{{ synergy_macos_download_dest }}"
+        mode: "0644"
+
+    - name: Mount Synergy DMG
+      ansible.builtin.command: hdiutil attach "{{ synergy_macos_download_dest }}" -nobrowse -noverify
+      register: synergy_mount_result
+      changed_when: true
+
+    - name: Find Synergy mount point
+      ansible.builtin.shell: |
+        set -euo pipefail
+        echo "{{ synergy_mount_result.stdout }}" | tail -1 | awk -F'\t' '{print $NF}'
+      args:
+        executable: /bin/bash
+      register: synergy_mount_point
+      changed_when: false
+
+    - name: Copy Synergy.app to Applications
+      ansible.builtin.shell: |
+        set -euo pipefail
+        cp -R "{{ synergy_mount_point.stdout | trim }}/Synergy.app" /Applications/
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Unmount Synergy DMG
+      ansible.builtin.command: hdiutil detach "{{ synergy_mount_point.stdout | trim }}"
+      changed_when: true
+
+    - name: Clean up downloaded Synergy DMG
+      ansible.builtin.file:
+        path: "{{ synergy_macos_download_dest }}"
+        state: absent
 
 - name: Install Synergy on Linux
   when:

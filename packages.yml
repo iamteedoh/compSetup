@@ -139,8 +139,6 @@ package_manifest:
       apt: qownnotes
     - name: typora
       brew_cask: typora
-    - name: visual-studio-code
-      brew_cask: visual-studio-code
     - name: signal-desktop
       linux:
         type: apt
