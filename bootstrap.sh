@@ -374,12 +374,9 @@ run_package_selector() {
     esac
 
     local result
-    local stderr_file
-    stderr_file=$(mktemp)
-
     result=$(python3 "$SCRIPT_DIR/scripts/package_selector.py" \
         --packages-file "$SCRIPT_DIR/packages.yml" \
-        --os "$os_flag" 2>"$stderr_file")
+        --os "$os_flag")
     local exit_code=$?
 
     if [[ $exit_code -eq 0 ]]; then
@@ -390,16 +387,12 @@ run_package_selector() {
         echo ""
         echo -e "  ${RED}${ICON_WARN} Package selector failed (exit code: $exit_code)${RESET}"
         echo ""
-        if [[ -s "$stderr_file" ]]; then
-            echo -e "  ${DIM}Error output:${RESET}"
-            echo ""
-            sed 's/^/    /' "$stderr_file"
-            echo ""
-        fi
+        echo -e "  ${DIM}To see the full error, run:${RESET}"
+        echo -e "  ${DIM}  python3 $SCRIPT_DIR/scripts/package_selector.py --packages-file $SCRIPT_DIR/packages.yml --os $os_flag${RESET}"
+        echo ""
         echo -e "  ${DIM}Press Enter to continue...${RESET}"
         read -r
     fi
-    rm -f "$stderr_file"
 }
 
 # Run Logic
