@@ -32,9 +32,22 @@ return {
       })
       opts.mapping = cmp.mapping.preset.insert({
         ["<C-Space>"] = cmp.mapping.complete(),
-        ["<CR>"] = cmp.mapping.confirm({ select = true }),
+        ["<CR>"] = cmp.mapping(function(fallback)
+          if cmp.visible() and cmp.get_active_entry() then
+            cmp.confirm({ select = false })
+          else
+            fallback()
+          end
+        end, { "i", "s" }),
         ["<C-n>"] = cmp.mapping.select_next_item(),
         ["<C-p>"] = cmp.mapping.select_prev_item(),
+        ["<Tab>"] = cmp.mapping(function(fallback)
+          if cmp.visible() then
+            cmp.confirm({ select = true })
+          else
+            fallback()
+          end
+        end, { "i", "s" }),
       })
       opts.sources = cmp.config.sources({
         { name = "nvim_lsp" },
