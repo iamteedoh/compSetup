@@ -1,12 +1,7 @@
--- NVChad-style mappings module
-local M = {}
+require "nvchad.mappings"
 
-M.general = {
-  n = {
-    ["<leader>e"] = { "<cmd>NvimTreeToggle<cr>", "Toggle file tree" },
-  },
-}
+local map = vim.keymap.set
 
-return M
-
-
+map("n", ";", ":", { desc = "CMD enter command mode" })
+map("i", "jk", "<ESC>", { desc = "Exit insert mode" })
+map("n", "<leader>e", "<cmd>NvimTreeToggle<CR>", { desc = "Toggle file tree" })

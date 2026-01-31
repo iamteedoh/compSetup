@@ -1,17 +1,14 @@
--- NVChad custom configuration
--- Enable tree (nvim-tree) and ensure basic plugins are active
-
+---@type ChadrcConfig
 local M = {}
 
-M.ui = {
+M.base46 = {
   theme = "onedark",
-  hl_override = require("custom.highlights").override,
+  hl_override = {
+    CursorLine = { bg = "#1E2430", underline = true },
+    CursorLineNr = { fg = "#00FF5F", bold = true },
+    CursorLineSign = { bg = "#3B4252" },
+    CursorLineFold = { bg = "#3B4252" },
+  },
 }
 
-M.plugins = "custom.plugins"
-
-M.mappings = "custom.mappings"
-
 return M
-
-

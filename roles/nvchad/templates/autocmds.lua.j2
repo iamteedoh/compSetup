@@ -1,0 +1,31 @@
+-- Spell checking for text filetypes
+vim.api.nvim_create_autocmd({ "BufEnter", "InsertEnter" }, {
+  callback = function()
+    if vim.bo.filetype == "markdown" or vim.bo.filetype == "text" then
+      vim.opt_local.spell = true
+      vim.opt_local.spelllang = "en_us"
+    end
+  end,
+})
+
+-- Enforce line numbers and cursorline on new windows
+vim.api.nvim_create_autocmd({ "VimEnter", "WinEnter", "BufWinEnter" }, {
+  callback = function()
+    vim.wo.number = true
+    vim.wo.relativenumber = false
+    vim.wo.cursorline = true
+  end,
+})
+
+-- Enforce 85-char hard wrap
+local wrapgrp = vim.api.nvim_create_augroup("CustomWrap85", { clear = true })
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile", "FileType", "BufEnter", "InsertEnter" }, {
+  group = wrapgrp,
+  callback = function()
+    vim.opt_local.textwidth = 85
+    local fo = vim.api.nvim_get_option_value("formatoptions", { scope = "local" })
+    fo = fo:gsub("l", "")
+    if not fo:match("t") then fo = fo .. "t" end
+    vim.api.nvim_set_option_value("formatoptions", fo, { scope = "local" })
+  end,
+})

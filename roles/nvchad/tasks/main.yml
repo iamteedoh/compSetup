@@ -74,46 +74,63 @@
         vim.uv = vim.loop
       end
 
-- name: Ensure NVChad custom config directory exists
+- name: Remove stale lua/custom/ directory (v2 remnant)
   ansible.builtin.file:
     path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom"
+    state: absent
+
+- name: Ensure configs directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/configs"
     state: directory
     mode: "0755"
 
-- name: Deploy NVChad custom config (options.lua)
-  ansible.builtin.template:
-    src: init.lua.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/init.lua"
-    mode: "0644"
+- name: Ensure plugins directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/plugins"
+    state: directory
+    mode: "0755"
 
-- name: Deploy NVChad custom config (chadrc.lua)
+- name: Deploy chadrc.lua
   ansible.builtin.template:
     src: chadrc.lua.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/chadrc.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/chadrc.lua"
     mode: "0644"
 
-- name: Deploy NVChad custom plugins (plugins.lua)
+- name: Deploy plugins/init.lua
   ansible.builtin.template:
     src: plugins.lua.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/plugins.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/plugins/init.lua"
     mode: "0644"
 
-- name: Deploy NVChad custom mappings (mappings.lua)
-  ansible.builtin.template:
-    src: mappings.lua.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/mappings.lua"
-    mode: "0644"
-
-- name: Deploy NVChad custom options (options.lua)
+- name: Deploy options.lua
   ansible.builtin.template:
     src: options.lua.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/options.lua"
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/options.lua"
     mode: "0644"
 
-- name: Deploy NVChad custom highlights (highlights.lua)
+- name: Deploy autocmds.lua
   ansible.builtin.template:
-    src: highlights.lua.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/highlights.lua"
+    src: autocmds.lua.j2
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/autocmds.lua"
+    mode: "0644"
+
+- name: Deploy mappings.lua
+  ansible.builtin.template:
+    src: mappings.lua.j2
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/mappings.lua"
+    mode: "0644"
+
+- name: Deploy configs/lsp.lua
+  ansible.builtin.template:
+    src: lsp.lua.j2
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/configs/lsp.lua"
+    mode: "0644"
+
+- name: Deploy configs/lint.lua
+  ansible.builtin.template:
+    src: lint.lua.j2
+    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/configs/lint.lua"
     mode: "0644"
 
 - name: Ensure after/plugin directory exists
@@ -126,18 +143,6 @@
   ansible.builtin.template:
     src: after_cursorline.lua.j2
     dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/after/plugin/cursorline.lua"
-    mode: "0644"
-
-- name: Deploy NVChad custom lsp setup (lsp.lua)
-  ansible.builtin.template:
-    src: lsp.lua.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/lsp.lua"
-    mode: "0644"
-
-- name: Deploy NVChad custom lint setup (lint.lua)
-  ansible.builtin.template:
-    src: lint.lua.j2
-    dest: "{{ ansible_facts['env']['HOME'] }}/.config/nvim/lua/custom/lint.lua"
     mode: "0644"
 
 - name: Ensure NVChad plugins are installed (Lazy sync)

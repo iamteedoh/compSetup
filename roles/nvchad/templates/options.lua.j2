@@ -1,21 +1,37 @@
--- Custom NVChad options
--- Syntax highlighting (treesitter is handled by NVChad plugins)
-vim.o.termguicolors = true
-vim.cmd([[syntax on]])
-vim.cmd([[filetype plugin indent on]])
+require "nvchad.options"
+
+local opt = vim.opt
+
+opt.termguicolors = true
 
 -- Line numbers
-vim.wo.number = true
-vim.wo.relativenumber = false
+opt.number = true
+opt.relativenumber = false
 
--- Wrap at 80 columns
-vim.o.wrap = true
-vim.o.textwidth = 80
-vim.o.colorcolumn = "80"
-vim.o.formatoptions = vim.o.formatoptions .. "t"
-vim.o.expandtab = true
-vim.o.shiftwidth = 2
-vim.o.tabstop = 2
-vim.o.smartindent = true
+-- Spelling defaults (autocmds enable per-filetype)
+opt.spell = false
+opt.spelllang = "en_us"
+opt.completeopt = "menu,menuone,noselect"
 
+-- Wrap at 85 columns (resolves 80 vs 85 conflict; 85 matches after_cursorline)
+opt.wrap = true
+opt.textwidth = 85
+opt.formatoptions:append("t")
 
+-- Indentation
+opt.expandtab = true
+opt.shiftwidth = 2
+opt.tabstop = 2
+opt.smartindent = true
+
+-- Cursor
+opt.cursorline = true
+opt.cursorcolumn = false
+opt.cursorlineopt = "both"
+vim.o.guicursor = table.concat({
+  "n-v-c:block-blinkon500-blinkoff500",
+  "i-ci:ver25-blinkon300-blinkoff300",
+  "r-cr:hor20",
+  "o:hor20",
+  "sm:block-blinkon300-blinkoff300",
+}, ",")
