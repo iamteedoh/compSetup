@@ -3,3 +3,4 @@
 bootstrap.log
 .install_blacklist
 __pycache__/
+firebase-debug.log
