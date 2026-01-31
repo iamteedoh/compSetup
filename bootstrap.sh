@@ -376,20 +376,72 @@ run_package_selector() {
     local result
     result=$(python3 "$SCRIPT_DIR/scripts/package_selector.py" \
         --packages-file "$SCRIPT_DIR/packages.yml" \
-        --os "$os_flag")
+        --os "$os_flag" \
+        --blacklist-file "$BLACKLIST_FILE")
     local exit_code=$?
 
     if [[ $exit_code -eq 0 ]]; then
-        PACKAGE_SELECTOR_OMIT="$result"
-        # If packages were deselected, offer to add them to the permanent blacklist
-        if [[ -n "$result" ]]; then
+        # Parse tagged output lines
+        local deselected_line="" remove_bl_line=""
+        while IFS= read -r line; do
+            case "$line" in
+                DESELECTED*)   deselected_line="${line#DESELECTED }" ;;
+                REMOVE_FROM_BLACKLIST*) remove_bl_line="${line#REMOVE_FROM_BLACKLIST }" ;;
+            esac
+        done <<< "$result"
+
+        # Trim leading/trailing whitespace
+        deselected_line=$(echo "$deselected_line" | sed 's/^ *//;s/ *$//')
+        remove_bl_line=$(echo "$remove_bl_line" | sed 's/^ *//;s/ *$//')
+
+        PACKAGE_SELECTOR_OMIT="$deselected_line"
+
+        # Handle blacklist removals (user chose "Remove from blacklist permanently")
+        if [[ -n "$remove_bl_line" && -f "$BLACKLIST_FILE" ]]; then
+            local removed=0
+            for pkg in $remove_bl_line; do
+                if grep -q "^${pkg}$" "$BLACKLIST_FILE" 2>/dev/null; then
+                    grep -v "^${pkg}$" "$BLACKLIST_FILE" > "${BLACKLIST_FILE}.tmp" \
+                        && mv "${BLACKLIST_FILE}.tmp" "$BLACKLIST_FILE"
+                    ((removed++))
+                fi
+            done
+            if (( removed > 0 )); then
+                draw_header
+                echo ""
+                echo -e "  ${GREEN}${ICON_CHECK} Removed ${removed} package(s) from the permanent blacklist.${RESET}"
+                echo ""
+                echo -e "  ${DIM}Press Enter to continue...${RESET}"
+                read -r
+            fi
+        fi
+
+        # Load current blacklist to filter the "add to blacklist?" prompt
+        local current_blacklist=""
+        if [[ -f "$BLACKLIST_FILE" ]]; then
+            current_blacklist=$(grep -v '^\s*#' "$BLACKLIST_FILE" | grep -v '^\s*$')
+        fi
+
+        # Determine newly deselected packages (not already in blacklist)
+        local newly_deselected=""
+        if [[ -n "$deselected_line" ]]; then
+            for pkg in $deselected_line; do
+                if ! echo "$current_blacklist" | grep -q "^${pkg}$" 2>/dev/null; then
+                    newly_deselected="$newly_deselected $pkg"
+                fi
+            done
+            newly_deselected=$(echo "$newly_deselected" | sed 's/^ *//;s/ *$//')
+        fi
+
+        # If there are newly deselected packages, offer to add them to the blacklist
+        if [[ -n "$newly_deselected" ]]; then
             local deselected_count
-            deselected_count=$(echo "$result" | wc -w | tr -d ' ')
+            deselected_count=$(echo "$newly_deselected" | wc -w | tr -d ' ')
             draw_header
             echo ""
-            echo -e "  ${BOLD}${deselected_count} package(s) deselected:${RESET}"
+            echo -e "  ${BOLD}${deselected_count} newly deselected package(s):${RESET}"
             echo ""
-            for pkg in $result; do
+            for pkg in $newly_deselected; do
                 echo -e "    ${DIM}-${RESET} $pkg"
             done
             echo ""
@@ -411,7 +463,7 @@ run_package_selector() {
                             echo -n "$BLACKLIST_HEADER" > "$BLACKLIST_FILE"
                         fi
                         local added=0
-                        for pkg in $result; do
+                        for pkg in $newly_deselected; do
                             if ! grep -q "^${pkg}$" "$BLACKLIST_FILE" 2>/dev/null; then
                                 echo "$pkg" >> "$BLACKLIST_FILE"
                                 ((added++))

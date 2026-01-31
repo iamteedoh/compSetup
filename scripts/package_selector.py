@@ -2,13 +2,17 @@
 """Interactive package selector TUI for CompSetup.
 
 Reads packages.yml and presents a categorized checkbox interface
-filtered by the selected OS. Outputs deselected package names
-(space-separated) on stdout for integration with the OMIT_LIST pipeline.
+filtered by the selected OS. Outputs tagged lines on stdout for
+integration with the bootstrap pipeline.
+
+Output protocol (stdout):
+    DESELECTED pkg1 pkg2 ...          - packages not to install
+    REMOVE_FROM_BLACKLIST pkgA pkgB   - packages to remove from blacklist file
 
 All UI rendering goes to stderr so stdout stays clean for pipe integration.
 
 Exit codes:
-    0 - Confirmed selection (deselected names on stdout)
+    0 - Confirmed selection (tagged output on stdout)
     2 - Cancelled by user (no output)
 """
 
@@ -125,6 +129,27 @@ except ImportError:
                         stack.append((current[key], indent, current, key))
 
         return root
+
+
+# ---------------------------------------------------------------------------
+# Blacklist loader
+# ---------------------------------------------------------------------------
+
+def load_blacklist(path):
+    """Read a blacklist file and return a set of package IDs.
+
+    Skips blank lines and lines starting with '#'. Returns an empty set
+    if the file is missing or *path* is None.
+    """
+    if not path or not os.path.isfile(path):
+        return set()
+    entries = set()
+    with open(path, "r") as fh:
+        for line in fh:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#"):
+                entries.add(stripped)
+    return entries
 
 
 # ---------------------------------------------------------------------------
@@ -479,6 +504,8 @@ def show_package_info(item):
     eprint(f"  {BOLD}Name:{RESET}        {item['display']}")
     eprint(f"  {BOLD}Category:{RESET}    {item['cat']}")
     eprint(f"  {BOLD}Status:{RESET}      {GREEN}Selected{RESET}" if item["sel"] else f"  {BOLD}Status:{RESET}      {YELLOW}Deselected{RESET}")
+    if item.get("bl"):
+        eprint(f"  {BOLD}Blacklisted:{RESET} {YELLOW}Permanently blacklisted{RESET}")
 
     desc = PACKAGE_DESCRIPTIONS.get(item["id"], "")
     if desc:
@@ -517,14 +544,58 @@ def show_package_info(item):
         pass
 
 
-def run_selector(categories, os_label):
-    """Run the interactive selector. Returns list of deselected identifiers or None if cancelled."""
+def _show_reenable_prompt(reenabled):
+    """Prompt the user about re-enabled blacklisted packages.
+
+    Returns 'i' (install once), 'r' (remove from blacklist), or 'b' (go back).
+    """
+    while True:
+        eprint(f"\033[2J\033[H", end="")
+        eprint("")
+        eprint(f"  {BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}")
+        eprint(f"  {BOLD}  Blacklisted Packages Re-enabled{RESET}")
+        eprint(f"  {BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{RESET}")
+        eprint("")
+        eprint(f"  You re-selected {BOLD}{len(reenabled)}{RESET} blacklisted package(s):")
+        eprint("")
+        for item in reenabled:
+            desc = PACKAGE_DESCRIPTIONS.get(item["id"], "")
+            desc_str = f"  {DIM}({desc}){RESET}" if desc else ""
+            eprint(f"    {GREEN}+{RESET} {item['display']}{desc_str}")
+        eprint("")
+        eprint(f"  {CYAN}[I]{RESET}  Install this time only (keep in blacklist)")
+        eprint(f"  {CYAN}[R]{RESET}  Remove from blacklist permanently & install")
+        eprint(f"  {CYAN}[B]{RESET}  Go back to package selector")
+        eprint("")
+        eprint(f"  {BOLD}>{RESET} ", end="")
+        sys.stderr.flush()
+        try:
+            ch = getch().lower()
+        except (KeyboardInterrupt, EOFError):
+            return "b"
+        if ch in ("i", "r", "b"):
+            return ch
+
+
+def run_selector(categories, os_label, blacklist=None):
+    """Run the interactive selector.
+
+    Returns a dict ``{"deselected": [...], "remove_from_blacklist": [...]}``
+    on confirmation, or ``None`` if cancelled.
+    """
+    if blacklist is None:
+        blacklist = set()
+
     # Flatten into ordered list
     items = []
     for cat_name, pkgs in categories:
         for display, ident, details in pkgs:
+            bl = ident in blacklist
             items.append({"cat": cat_name, "display": display, "id": ident,
-                          "sel": True, "details": details})
+                          "sel": not bl, "bl": bl, "details": details})
+
+    # Snapshot of initial selection state for Reset
+    initial_state = [(it["sel"], it["bl"]) for it in items]
 
     if not items:
         eprint(f"\n  No packages found for {os_label}.\n")
@@ -555,19 +626,22 @@ def run_selector(categories, os_label):
                 lines.append(f"  {BOLD}{CYAN}{current_cat}{RESET}")
 
             check = f"{GREEN}x{RESET}" if item["sel"] else " "
+            bl_tag = f" {YELLOW}BL{RESET} " if item.get("bl") else "    "
             num_str = f"{global_idx:>3}"
-            lines.append(f"    [{check}] {DIM}{num_str}.{RESET} {item['display']}")
+            lines.append(f"    [{check}]{bl_tag}{DIM}{num_str}.{RESET} {item['display']}")
 
         lines.append("")
         sel_count = sum(1 for i in items if i["sel"])
         desel_count = total - sel_count
+        bl_count = sum(1 for i in items if i.get("bl"))
+        bl_info = f"  |  {bl_count} blacklisted" if bl_count else ""
         lines.append(f"  {DIM}Page {page + 1}/{total_pages}  |  "
-                      f"{sel_count} selected, {desel_count} deselected  |  "
+                      f"{sel_count} selected, {desel_count} deselected{bl_info}  |  "
                       f"{total} total{RESET}")
         lines.append("")
         lines.append(f"  {BOLD}{DIM}Legend:{RESET}")
         lines.append("")
-        lines.append(f"  {CYAN}[A]{RESET} Select All   {CYAN}[D]{RESET} Deselect All")
+        lines.append(f"  {CYAN}[A]{RESET} Select All   {CYAN}[D]{RESET} Deselect All   {CYAN}[R]{RESET} Reset")
         lines.append(f"  {CYAN}[N]{RESET} Next Page    {CYAN}[P]{RESET} Prev Page")
         lines.append(f"  {CYAN}[I]{RESET} Package Info {CYAN}[Q]{RESET} Cancel")
         lines.append(f"  {CYAN}[C]{RESET} Confirm")
@@ -597,14 +671,28 @@ def run_selector(categories, os_label):
         if low == "q":
             return None
         elif low == "c":
+            # Detect blacklisted packages the user re-enabled
+            reenabled = [i for i in items if i.get("bl") and i["sel"]]
+            remove_from_bl = []
+            if reenabled:
+                action = _show_reenable_prompt(reenabled)
+                if action == "b":
+                    continue  # go back to selector
+                elif action == "r":
+                    remove_from_bl = [i["id"] for i in reenabled]
+                # action == "i" -> one-time install, keep in blacklist
             deselected = [i["id"] for i in items if not i["sel"]]
-            return deselected
+            return {"deselected": deselected, "remove_from_blacklist": remove_from_bl}
         elif low == "a":
             for i in items:
                 i["sel"] = True
         elif low == "d":
             for i in items:
                 i["sel"] = False
+        elif low == "r":
+            for idx, (sel, bl) in enumerate(initial_state):
+                items[idx]["sel"] = sel
+                items[idx]["bl"] = bl
         elif low == "n":
             if page < total_pages - 1:
                 page += 1
@@ -635,6 +723,8 @@ def main():
     parser.add_argument("--packages-file", required=True, help="Path to packages.yml")
     parser.add_argument("--os", required=True, choices=["macos", "ubuntu", "fedora"],
                         help="Target OS to filter packages")
+    parser.add_argument("--blacklist-file", default=None,
+                        help="Path to permanent blacklist file (one package per line)")
     args = parser.parse_args()
 
     if not os.path.isfile(args.packages_file):
@@ -646,15 +736,19 @@ def main():
 
     os_label = {"macos": "macOS", "ubuntu": "Ubuntu", "fedora": "Fedora"}[args.os]
     categories = filter_packages(manifest, args.os)
+    blacklist = load_blacklist(args.blacklist_file)
 
-    result = run_selector(categories, os_label)
+    result = run_selector(categories, os_label, blacklist)
 
     if result is None:
         sys.exit(2)
 
-    # Output deselected packages space-separated on stdout
-    if result:
-        print(" ".join(result))
+    # Tagged output protocol
+    deselected = result.get("deselected", [])
+    remove_bl = result.get("remove_from_blacklist", [])
+    print("DESELECTED " + " ".join(deselected))
+    if remove_bl:
+        print("REMOVE_FROM_BLACKLIST " + " ".join(remove_bl))
     sys.exit(0)
 
 
