@@ -486,6 +486,43 @@ run_package_selector() {
                 esac
             done
         fi
+
+        # Post-confirm summary with option to install now
+        local total_deselected=0
+        if [[ -n "$deselected_line" ]]; then
+            total_deselected=$(echo "$deselected_line" | wc -w | tr -d ' ')
+        fi
+        draw_header
+        echo ""
+        echo -e "  ${GREEN}${ICON_CHECK} Package selection saved${RESET}"
+        echo ""
+        if (( total_deselected > 0 )); then
+            echo -e "  ${DIM}${total_deselected} package(s) will be skipped${RESET}"
+        else
+            echo -e "  ${DIM}All packages selected${RESET}"
+        fi
+        echo ""
+        draw_line "─"
+        echo ""
+        echo -e "  ${CYAN}[R]${RESET}  ${BOLD}Run installation now${RESET} with these settings"
+        echo -e "  ${CYAN}[C]${RESET}  Continue configuring other options"
+        echo ""
+        while true; do
+            read -p "  Selection: " -n 1 -r post_confirm_choice
+            echo ""
+            case $post_confirm_choice in
+                [Rr])
+                    run_installation
+                    return
+                    ;;
+                [Cc])
+                    return
+                    ;;
+                *)
+                    echo -e "  ${DIM}Press R or C${RESET}"
+                    ;;
+            esac
+        done
     elif [[ $exit_code -ne 2 ]]; then
         # exit_code 2 = cancelled by user, anything else is an error
         draw_header
