@@ -670,7 +670,7 @@ show_work_computer_warning() {
     draw_header
     echo ""
     echo -e "  ${RED}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
-    echo -e "  ${RED}${BOLD}  ${ICON_WARN}  WARNING  ${ICON_WARN}${RESET}"
+    echo -e "  ${RED}${BOLD}                  ${ICON_WARN}  WARNING  ${ICON_WARN}${RESET}"
     echo -e "  ${RED}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
     echo ""
     echo -e "  ${YELLOW}If you are installing this on a ${BOLD}work computer${RESET}${YELLOW}, it is${RESET}"
@@ -691,6 +691,7 @@ show_work_computer_warning() {
         case $warn_choice in
             [Pp])
                 run_package_selector
+                show_custom_menu
                 return
                 ;;
             [Mm])
