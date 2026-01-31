@@ -552,6 +552,88 @@ run_installation() {
     # Deduplicate
     OMIT_LIST=$(echo "$OMIT_LIST" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/^ *//;s/ *$//')
 
+    # --- Pre-Install Summary ---
+    draw_header
+    echo ""
+    echo -e "  ${BOLD}━━━ Pre-Install Summary ━━━${RESET}"
+    echo ""
+
+    # Settings section
+    echo -e "  ${BOLD}Settings:${RESET}"
+    # AI Tools: ON when NOT skipping
+    local ai_badge
+    if [[ "$SKIP_AI_TOOLS" == "true" ]]; then
+        ai_badge="${DIM}[OFF]${RESET}"
+    else
+        ai_badge="${GREEN}[ON]${RESET}"
+    fi
+    print_menu_line " " "${ICON_AI}" "AI Tools" "$ai_badge"
+
+    # VS Code Extensions: ON when NOT skipping
+    local vscode_badge
+    if [[ "$SKIP_VSCODE" == "true" ]]; then
+        vscode_badge="${DIM}[OFF]${RESET}"
+    else
+        vscode_badge="${GREEN}[ON]${RESET}"
+    fi
+    print_menu_line " " "${ICON_CODE}" "VS Code Extensions" "$vscode_badge" "" 1
+
+    # DaVinci Resolve
+    local davinci_badge
+    if [[ "$INSTALL_DAVINCI" == "true" && -n "$DAVINCI_EDITION" ]]; then
+        local edition_label
+        if [[ "$DAVINCI_EDITION" == "studio" ]]; then
+            edition_label="${PURPLE}Studio${RESET}"
+        else
+            edition_label="Free"
+        fi
+        davinci_badge="${GREEN}[ON]${RESET} ${DIM}(${edition_label}${DIM})${RESET}"
+    else
+        davinci_badge="${DIM}[OFF]${RESET}"
+    fi
+    print_menu_line " " "${ICON_MEDIA}" "DaVinci Resolve" "$davinci_badge" "" 1
+
+    # Synergy
+    print_menu_line " " "${ICON_SYNC}" "Synergy (KVM)" "$(get_status_badge $INSTALL_SYNERGY)" "" 1
+
+    # Fedora-only options
+    if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+        print_menu_line " " "${ICON_GPU}" "NVIDIA Drivers" "$(get_status_badge $INSTALL_NVIDIA)" "" 1
+        print_menu_line " " "${ICON_LAPTOP}" "System76 Support" "$(get_status_badge $INSTALL_SYSTEM76)" "" 1
+    fi
+
+    # Packages being skipped
+    if [[ -n "$OMIT_LIST" ]]; then
+        local count
+        count=$(echo "$OMIT_LIST" | wc -w | tr -d ' ')
+        echo ""
+        echo -e "  ${BOLD}Packages to skip (${count}):${RESET}"
+        for pkg in $OMIT_LIST; do
+            echo -e "    ${RED}✗${RESET} ${pkg}"
+        done
+    else
+        echo ""
+        echo -e "  ${GREEN}No packages will be skipped.${RESET}"
+    fi
+
+    echo ""
+    echo -e "  ${DIM}All other packages from the manifest will be installed.${RESET}"
+    echo ""
+    draw_line "─"
+    echo -e "  ${CYAN}[Y]${RESET}  Proceed with installation"
+    echo -e "  ${CYAN}[N]${RESET}  Cancel and return to menu"
+    echo ""
+
+    while true; do
+        read -p "  Selection: " -n 1 -r confirm_choice
+        echo ""
+        case $confirm_choice in
+            [Yy]) break ;;
+            [Nn]) return ;;
+            *) echo -e "  ${DIM}Press Y or N${RESET}" ;;
+        esac
+    done
+
     # Build Arguments
     ARGS=()
     if [[ "$SKIP_AI_TOOLS" == "true" ]]; then ARGS+=("--skip-ai-tools"); fi
