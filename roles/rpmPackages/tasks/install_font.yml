@@ -28,11 +28,4 @@
     dest: "{{ current_font_dest }}"
     remote_src: true
     mode: "0644"
-  register: current_font_unarchive
   when: current_font_find.matched | default(0) == 0
-
-- name: Flag font cache refresh
-  ansible.builtin.set_fact:
-    font_cache_refresh_required: true
-  when: current_font_unarchive is defined and current_font_unarchive.changed | default(false)
-

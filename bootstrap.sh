@@ -8,6 +8,7 @@ set -u
 # --- Configuration & State ---
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 OS_NAME=$(uname -s)
+ARCH=$(uname -m)
 BLACKLIST_FILE="$HOME/.install_blacklist"
 
 # State Variables
@@ -183,7 +184,7 @@ show_main_menu() {
     echo ""
     echo -e "  ${CYAN}[1]${RESET} 🚀  Install Everything (Standard)"
     echo -e "  ${CYAN}[2]${RESET} 🍃  Install Everything (No AI Tools)"
-    if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+    if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
         echo -e "  ${CYAN}[3]${RESET} 💻  Install Everything + System76 Support"
         echo -e "  ${CYAN}[4]${RESET} 🎮  Install NVIDIA Drivers Only"
         echo -e "  ${CYAN}[5]${RESET} 🔧  Custom Installation / Configure Options"
@@ -221,7 +222,7 @@ show_custom_menu() {
         fi
         print_menu_line "3" "${ICON_MEDIA}" "Install DaVinci Resolve" "$davinci_badge" "" 1
         print_menu_line "4" "${ICON_SYNC}" "Install Synergy (KVM)" "$(get_status_badge $INSTALL_SYNERGY)" "Share keyboard & mouse across computers" 1
-        if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+        if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
             print_menu_line "5" "${ICON_GPU}" "Install NVIDIA Drivers" "$(get_status_badge $INSTALL_NVIDIA)" "Auto-detects GPU generation" 1
             print_menu_line "6" "${ICON_LAPTOP}" "Install System76 Support" "$(get_status_badge $INSTALL_SYSTEM76)" "System76 firmware, power, DKMS" 1
         fi
@@ -294,12 +295,12 @@ show_custom_menu() {
                 if [[ "$INSTALL_SYNERGY" == "true" ]]; then INSTALL_SYNERGY=false; else INSTALL_SYNERGY=true; fi
                 ;;
             5)
-                if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+                if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
                     if [[ "$INSTALL_NVIDIA" == "true" ]]; then INSTALL_NVIDIA=false; else INSTALL_NVIDIA=true; fi
                 fi
                 ;;
             6)
-                if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+                if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
                     if [[ "$INSTALL_SYSTEM76" == "true" ]]; then INSTALL_SYSTEM76=false; else INSTALL_SYSTEM76=true; fi
                 fi
                 ;;
@@ -377,6 +378,7 @@ run_package_selector() {
     result=$(python3 "$SCRIPT_DIR/scripts/package_selector.py" \
         --packages-file "$SCRIPT_DIR/packages.yml" \
         --os "$os_flag" \
+        --arch "$ARCH" \
         --blacklist-file "$BLACKLIST_FILE")
     local exit_code=$?
 
@@ -596,8 +598,8 @@ run_installation() {
     # Synergy
     print_menu_line " " "${ICON_SYNC}" "Synergy (KVM)" "$(get_status_badge $INSTALL_SYNERGY)" "" 1
 
-    # Fedora-only options
-    if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+    # Fedora-only options (x86_64 only)
+    if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
         print_menu_line " " "${ICON_GPU}" "NVIDIA Drivers" "$(get_status_badge $INSTALL_NVIDIA)" "" 1
         print_menu_line " " "${ICON_LAPTOP}" "System76 Support" "$(get_status_badge $INSTALL_SYSTEM76)" "" 1
     fi
@@ -810,7 +812,7 @@ while true; do
             run_installation
             ;;
         3)
-            if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+            if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
                 # Everything + System76 Support
                 SKIP_AI_TOOLS=false
                 SKIP_VSCODE=false
@@ -823,7 +825,7 @@ while true; do
             fi
             ;;
         4)
-            if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+            if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
                 # NVIDIA Drivers Only
                 INSTALL_NVIDIA=true
                 run_installation
@@ -832,12 +834,12 @@ while true; do
             fi
             ;;
         5)
-            if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+            if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
                 show_custom_menu
             fi
             ;;
         6)
-            if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+            if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
                 edit_blacklist
             fi
             ;;

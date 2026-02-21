@@ -154,16 +154,19 @@ package_manifest:
       linux:
         url: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/0xProto.zip
         dest: ~/.local/share/fonts
+        pattern: "0xProto*"
     - name: font-fira-code-nerd-font
       brew_cask: font-fira-code-nerd-font
       linux:
         url: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip
         dest: ~/.local/share/fonts
+        pattern: "FiraCode*"
     - name: font-fira-mono-nerd-font
       brew_cask: font-fira-mono-nerd-font
       linux:
         url: https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraMono.zip
         dest: ~/.local/share/fonts
+        pattern: "FiraMono*"
 
   vscode_extensions:
     - github.copilot
@@ -216,6 +219,17 @@ package_manifest:
     by_desktop:
       kde:
         - plasma-discover-backend-flatpak
+
+  x86_64_only_flatpak_apps:
+    - com.getmailspring.Mailspring
+    - com.discordapp.Discord
+    - com.google.Chrome
+    - com.slack.Slack
+    - me.proton.Pass
+    - network.loki.Session
+    - com.obsproject.Studio
+    - org.jupyter.JupyterLab
+    - org.signal.Signal
 
   flatpak_apps:
     - com.brave.Browser

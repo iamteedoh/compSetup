@@ -224,9 +224,10 @@ fi
 # Check if kernel was upgraded (running kernel != latest installed)
 RUNNING_KERNEL=$(uname -r)
 if command -v rpm &>/dev/null; then
-  LATEST_KERNEL=$(rpm -q kernel --last 2>/dev/null | head -1 | awk '{print $1}' | sed 's/kernel-//')
+  # Query both standard and 16k-page kernel packages (Fedora Asahi uses kernel-16k)
+  LATEST_KERNEL=$(rpm -q kernel kernel-16k --last 2>/dev/null | grep -v 'not installed' | head -1 | awk '{print $1}' | sed 's/^kernel\(-16k\)\?-//' || true)
 elif command -v dpkg &>/dev/null; then
-  LATEST_KERNEL=$(dpkg -l 'linux-image-[0-9]*' 2>/dev/null | grep '^ii' | awk '{print $2}' | sort -V | tail -1 | sed 's/linux-image-//')
+  LATEST_KERNEL=$(dpkg -l 'linux-image-[0-9]*' 2>/dev/null | grep '^ii' | awk '{print $2}' | sort -V | tail -1 | sed 's/linux-image-//' || true)
 fi
 if [[ -n "${LATEST_KERNEL:-}" && "$RUNNING_KERNEL" != "$LATEST_KERNEL" ]]; then
   REBOOT_NEEDED=true

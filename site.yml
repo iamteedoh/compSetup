@@ -67,6 +67,15 @@
             })
         }) }}"
 
+    - name: Filter x86_64-only flatpak apps on non-x86_64 systems
+      when: ansible_facts['architecture'] not in ['x86_64', 'amd64']
+      set_fact:
+        package_manifest: "{{ package_manifest | combine({
+            'flatpak_apps': package_manifest.flatpak_apps
+              | reject('in', package_manifest.x86_64_only_flatpak_apps | default([]))
+              | list
+        }) }}"
+
     - name: Build Homebrew package targets
       set_fact:
         brew_taps: "{{ package_manifest.brew_taps | default([]) }}"
@@ -158,19 +167,25 @@
       when: install_vscode_extensions | bool
     - role: davinci_resolve
       tags: ['davinci_resolve']
-      when: install_davinci | default(false) | bool
+      when:
+        - install_davinci | default(false) | bool
+        - ansible_facts['architecture'] in ['x86_64', 'amd64']
     - role: synergy
       tags: ['synergy']
-      when: install_synergy | default(false) | bool
+      when:
+        - install_synergy | default(false) | bool
+        - ansible_facts['system'] == 'Darwin' or ansible_facts['architecture'] in ['x86_64', 'amd64']
     - role: nvidia_drivers
       tags: ['nvidia_drivers']
       when:
         - install_nvidia | default(false) | bool
         - ansible_facts['os_family'] == 'RedHat'
+        - ansible_facts['architecture'] in ['x86_64', 'amd64']
     - role: system76
       tags: ['system76']
       when:
         - install_system76 | default(false) | bool
         - ansible_facts['os_family'] == 'RedHat'
+        - ansible_facts['architecture'] in ['x86_64', 'amd64']
     - role: iterm2
       when: ansible_facts['system'] == 'Darwin'

@@ -18,6 +18,7 @@ Exit codes:
 
 import argparse
 import os
+import platform
 import sys
 import termios
 import tty
@@ -725,6 +726,8 @@ def main():
                         help="Target OS to filter packages")
     parser.add_argument("--blacklist-file", default=None,
                         help="Path to permanent blacklist file (one package per line)")
+    parser.add_argument("--arch", default=platform.machine(),
+                        help="System architecture (default: auto-detected via platform.machine())")
     args = parser.parse_args()
 
     if not os.path.isfile(args.packages_file):
@@ -733,6 +736,15 @@ def main():
 
     data = load_yaml(args.packages_file)
     manifest = data.get("package_manifest", data)
+
+    # Filter out x86_64-only flatpak apps on non-x86_64 architectures
+    if args.arch not in ("x86_64", "amd64"):
+        x86_only = set(manifest.get("x86_64_only_flatpak_apps", []))
+        if x86_only:
+            manifest["flatpak_apps"] = [
+                fp for fp in manifest.get("flatpak_apps", [])
+                if fp not in x86_only
+            ]
 
     os_label = {"macos": "macOS", "ubuntu": "Ubuntu", "fedora": "Fedora"}[args.os]
     categories = filter_packages(manifest, args.os)

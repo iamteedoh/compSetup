@@ -237,10 +237,6 @@
     linux_fonts: >-
       {{ package_manifest.fonts | selectattr('linux', 'defined') | list }}
   block:
-    - name: Initialize font cache refresh flag
-      ansible.builtin.set_fact:
-        font_cache_refresh_required: false
-
     - name: Process Nerd Fonts
       ansible.builtin.include_tasks: install_font.yml
       loop: "{{ linux_fonts }}"
@@ -248,9 +244,8 @@
         loop_var: font_item
         label: "{{ font_item.name }}"
 
-    - name: Rebuild font cache if fonts changed
+    - name: Rebuild font cache
       ansible.builtin.command: fc-cache -f
-      when: font_cache_refresh_required | default(false)
       changed_when: true
 
 - name: Install Linux GUI applications
