@@ -131,8 +131,12 @@ alias c='clear'
 alias zshrc='nvim ~/.zshrc'
 alias sourceme='source ~/.zshrc'
 alias sshconf='~/.ssh/config'
-alias gitb='git --no-pager branch'
-alias gita='git --no-pager branch -a'
+alias gitb='git -P branch' # List all local branches
+alias gita='git -P branch -a' # List all local and remote branches
+alias gitcb='git checkout -b' # Create new branch and switch to it
+alias gitc='git checkout' # Checkout an existing branch given
+alias gitb='git branch' # Create new branch but don't switch to it
+alias gitpus='git push --set-upstream origin $(git branch --show-current)'
 alias bwl="bw list items | jq 'map(del(.login.password))'"
 alias bat='batcat'
 
