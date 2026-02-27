@@ -51,6 +51,72 @@
     backup: yes
     owner: "{{ ansible_facts['env']['USER'] | default(ansible_facts['user_id']) }}"
 
+###############################################
+# SSH agent persistence (platform-aware)      #
+#                                             #
+# Fedora/RHEL: systemd ssh-agent.socket       #
+#   + ksshaskpass (KDE Wallet passphrase cache)#
+#   + loginctl linger (survives logout)        #
+#                                             #
+# Debian/Ubuntu/Pop!_OS: GNOME Keyring        #
+#   + ssh-askpass-gnome (GUI passphrase prompt)#
+#   GNOME Keyring acts as the SSH agent and    #
+#   stores passphrases in the login keyring.   #
+#                                             #
+# macOS: Keychain handles SSH natively.        #
+###############################################
+
+# --- Fedora / RHEL ---
+
+- name: Install ksshaskpass (Fedora/RHEL)
+  become: true
+  ansible.builtin.dnf:
+    name: ksshaskpass
+    state: present
+  when:
+    - ansible_facts['system'] == 'Linux'
+    - ansible_facts['os_family'] == 'RedHat'
+
+- name: Check if systemd ssh-agent.socket unit exists
+  ansible.builtin.stat:
+    path: /usr/lib/systemd/user/ssh-agent.socket
+  register: ssh_agent_socket_unit
+  when: ansible_facts['system'] == 'Linux'
+
+- name: Enable ssh-agent systemd user socket
+  ansible.builtin.systemd:
+    name: ssh-agent.socket
+    scope: user
+    enabled: true
+    state: started
+  when:
+    - ansible_facts['system'] == 'Linux'
+    - ssh_agent_socket_unit.stat.exists | default(false)
+
+- name: Enable loginctl linger for persistent user services
+  become: true
+  ansible.builtin.command:
+    cmd: "loginctl enable-linger {{ ansible_facts['user_id'] }}"
+  register: linger_result
+  changed_when: linger_result.rc == 0
+  failed_when: false
+  when:
+    - ansible_facts['system'] == 'Linux'
+    - ssh_agent_socket_unit.stat.exists | default(false)
+
+# --- Debian / Ubuntu / Pop!_OS ---
+
+- name: Ensure GNOME Keyring SSH component is installed (Debian/Ubuntu)
+  become: true
+  ansible.builtin.apt:
+    name:
+      - gnome-keyring
+      - ssh-askpass-gnome
+    state: present
+  when:
+    - ansible_facts['system'] == 'Linux'
+    - ansible_facts['os_family'] == 'Debian'
+
 ########################
 # Vim (.vimrc) profile #
 ########################

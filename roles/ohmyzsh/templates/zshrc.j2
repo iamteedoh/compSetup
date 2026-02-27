@@ -141,8 +141,32 @@ alias bwl="bw list items | jq 'map(del(.login.password))'"
 alias bat='batcat'
 alias sudo='sudo '
 
-# Other Options
-ssh-add ~/.ssh/id_ed25519 2>/dev/null
+# SSH agent — platform-aware persistent key loading
+# Fedora/RHEL: systemd ssh-agent.socket + ksshaskpass (KDE Wallet)
+# Ubuntu/Pop!_OS: GNOME Keyring agent + ssh-askpass-gnome
+# macOS: Keychain (handled natively by ssh-add --apple-use-keychain)
+if [[ -S "$XDG_RUNTIME_DIR/ssh-agent.socket" ]]; then
+  export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
+elif [[ -S "$XDG_RUNTIME_DIR/keyring/ssh" ]]; then
+  export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/keyring/ssh"
+fi
+if command -v ksshaskpass &>/dev/null; then
+  export SSH_ASKPASS="$(command -v ksshaskpass)"
+  export SSH_ASKPASS_REQUIRE="prefer"
+elif [[ -x /usr/libexec/openssh/gnome-ssh-askpass ]]; then
+  export SSH_ASKPASS="/usr/libexec/openssh/gnome-ssh-askpass"
+  export SSH_ASKPASS_REQUIRE="prefer"
+elif [[ -x /usr/bin/ssh-askpass ]]; then
+  export SSH_ASKPASS="/usr/bin/ssh-askpass"
+  export SSH_ASKPASS_REQUIRE="prefer"
+fi
+if [[ -f ~/.ssh/id_ed25519 ]]; then
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    ssh-add -l &>/dev/null || ssh-add --apple-use-keychain ~/.ssh/id_ed25519 2>/dev/null
+  else
+    ssh-add -l &>/dev/null || ssh-add ~/.ssh/id_ed25519 </dev/null 2>/dev/null
+  fi
+fi
 
 # === apt-upgrade-report helpers ===
 # PATH safety (usually not needed, but harmless)
