@@ -1,0 +1,18 @@
+---
+- name: Ensure Konsole config directory exists
+  file:
+    path: "{{ konsole_tabs_user_home }}/.config/konsole"
+    state: directory
+    mode: "0755"
+
+- name: Deploy Konsole tab bar stylesheet
+  template:
+    src: tabbar.css.j2
+    dest: "{{ konsole_tabs_user_home }}/.config/konsole/tabbar.css"
+    mode: "0644"
+
+- name: Konsole tab bar stylesheet deployed
+  debug:
+    msg: >-
+      Konsole tab stylesheet installed to {{ konsole_tabs_user_home }}/.config/konsole/tabbar.css.
+      Enable it in Konsole: Settings > Configure Konsole > Tab Bar > Use user-defined stylesheet.

@@ -19,6 +19,7 @@ INSTALL_SYNERGY=false
 INSTALL_NVIDIA=false
 INSTALL_SYSTEM76=false
 INSTALL_FIX_AUDIO=false
+INSTALL_KONSOLE_TABS=false
 SKIP_VSCODE=false
 OMIT_LIST=""
 
@@ -50,6 +51,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-fix-audio)
       INSTALL_FIX_AUDIO=true
+      shift
+      ;;
+    --install-konsole-tabs)
+      INSTALL_KONSOLE_TABS=true
       shift
       ;;
     --skip-vscode-extensions)
@@ -172,6 +177,7 @@ cat <<EOF > "$VARS_FILE"
   "install_nvidia": ${INSTALL_NVIDIA},
   "install_system76": ${INSTALL_SYSTEM76},
   "install_fix_audio": ${INSTALL_FIX_AUDIO},
+  "install_konsole_tabs": ${INSTALL_KONSOLE_TABS},
   "skip_vscode_extensions": ${SKIP_VSCODE},
   "omit_list_str": "${OMIT_LIST}"
 }

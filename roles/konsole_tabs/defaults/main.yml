@@ -1,0 +1,2 @@
+---
+konsole_tabs_user_home: "{{ ansible_facts['env']['HOME'] }}"

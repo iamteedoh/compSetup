@@ -192,5 +192,10 @@
       when:
         - install_fix_audio | default(false) | bool
         - ansible_facts['os_family'] == 'RedHat'
+    - role: konsole_tabs
+      tags: ['konsole_tabs']
+      when:
+        - install_konsole_tabs | default(false) | bool
+        - ansible_facts['system'] == 'Linux'
     - role: iterm2
       when: ansible_facts['system'] == 'Darwin'

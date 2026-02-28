@@ -19,6 +19,7 @@ INSTALL_SYNERGY=false
 INSTALL_NVIDIA=false
 INSTALL_SYSTEM76=false
 INSTALL_FIX_AUDIO=false
+INSTALL_KONSOLE_TABS=false
 SKIP_VSCODE=false
 OMIT_LIST=""
 PACKAGE_SELECTOR_OMIT=""
@@ -230,6 +231,9 @@ show_custom_menu() {
         if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
             print_menu_line "7" "🔊" "Install Fix Audio (Douk DAC)" "$(get_status_badge $INSTALL_FIX_AUDIO)" "USB DAC recovery + WirePlumber config" 1
         fi
+        if [[ "$SELECTED_DISTRO" != "macos" ]]; then
+            print_menu_line "8" "🖥" "Install Konsole Tab Styling" "$(get_status_badge $INSTALL_KONSOLE_TABS)" "Highlight active tab (KDE Konsole)" 1
+        fi
         echo ""
         local pkg_badge
         if [[ -n "$PACKAGE_SELECTOR_OMIT" ]]; then
@@ -311,6 +315,11 @@ show_custom_menu() {
             7)
                 if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
                     if [[ "$INSTALL_FIX_AUDIO" == "true" ]]; then INSTALL_FIX_AUDIO=false; else INSTALL_FIX_AUDIO=true; fi
+                fi
+                ;;
+            8)
+                if [[ "$SELECTED_DISTRO" != "macos" ]]; then
+                    if [[ "$INSTALL_KONSOLE_TABS" == "true" ]]; then INSTALL_KONSOLE_TABS=false; else INSTALL_KONSOLE_TABS=true; fi
                 fi
                 ;;
             [Pp])
@@ -615,6 +624,9 @@ run_installation() {
     if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
         print_menu_line " " "🔊" "Fix Audio (Douk DAC)" "$(get_status_badge $INSTALL_FIX_AUDIO)" "" 1
     fi
+    if [[ "$SELECTED_DISTRO" != "macos" ]]; then
+        print_menu_line " " "🖥" "Konsole Tab Styling" "$(get_status_badge $INSTALL_KONSOLE_TABS)" "" 1
+    fi
 
     # Packages being skipped
     if [[ -n "$OMIT_LIST" ]]; then
@@ -657,6 +669,7 @@ run_installation() {
     if [[ "$INSTALL_NVIDIA" == "true" ]]; then ARGS+=("--install-nvidia"); fi
     if [[ "$INSTALL_SYSTEM76" == "true" ]]; then ARGS+=("--install-system76"); fi
     if [[ "$INSTALL_FIX_AUDIO" == "true" ]]; then ARGS+=("--install-fix-audio"); fi
+    if [[ "$INSTALL_KONSOLE_TABS" == "true" ]]; then ARGS+=("--install-konsole-tabs"); fi
     if [[ "$SKIP_VSCODE" == "true" ]]; then ARGS+=("--skip-vscode-extensions"); fi
     if [[ -n "$OMIT_LIST" ]]; then ARGS+=("--omit-list" "$OMIT_LIST"); fi
 
