@@ -1,0 +1,30 @@
+---
+- name: Ensure ~/.local/bin/ exists
+  file:
+    path: "{{ fix_audio_user_home }}/.local/bin"
+    state: directory
+    mode: "0755"
+
+- name: Deploy fix-audio.sh recovery script
+  template:
+    src: fix-audio.sh.j2
+    dest: "{{ fix_audio_user_home }}/.local/bin/fix-audio.sh"
+    mode: "0755"
+
+- name: Ensure WirePlumber config directory exists
+  file:
+    path: "{{ fix_audio_user_home }}/.config/wireplumber/wireplumber.conf.d"
+    state: directory
+    mode: "0755"
+
+- name: Deploy WirePlumber Douk Audio config
+  template:
+    src: 51-douk-audio.conf.j2
+    dest: "{{ fix_audio_user_home }}/.config/wireplumber/wireplumber.conf.d/51-douk-audio.conf"
+    mode: "0644"
+
+- name: Fix Audio (Douk DAC) deployed
+  debug:
+    msg: >-
+      fix-audio.sh installed to {{ fix_audio_user_home }}/.local/bin/fix-audio.sh
+      and WirePlumber config deployed to {{ fix_audio_user_home }}/.config/wireplumber/wireplumber.conf.d/51-douk-audio.conf

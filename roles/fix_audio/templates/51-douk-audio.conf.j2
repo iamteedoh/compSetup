@@ -1,0 +1,19 @@
+# Fix for Douk Audio USB DAC (C-Media Electronics 0x0d8c:0x0147, "USB HIFI AUDIO")
+# Prevents node suspension and adds headroom for USB audio stability.
+
+monitor.alsa.rules = [
+  {
+    matches = [
+      {
+        node.name = "~alsa_output.usb-C-Media_Electronics_Inc._USB_HIFI_AUDIO*"
+      }
+    ]
+    actions = {
+      update-props = {
+        session.suspend-timeout-seconds = 0
+        api.alsa.period-size = 1024
+        api.alsa.headroom = 1024
+      }
+    }
+  }
+]

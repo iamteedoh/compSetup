@@ -18,6 +18,7 @@ DAVINCI_EDITION=""
 INSTALL_SYNERGY=false
 INSTALL_NVIDIA=false
 INSTALL_SYSTEM76=false
+INSTALL_FIX_AUDIO=false
 SKIP_VSCODE=false
 OMIT_LIST=""
 
@@ -45,6 +46,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-system76)
       INSTALL_SYSTEM76=true
+      shift
+      ;;
+    --install-fix-audio)
+      INSTALL_FIX_AUDIO=true
       shift
       ;;
     --skip-vscode-extensions)
@@ -166,6 +171,7 @@ cat <<EOF > "$VARS_FILE"
   "install_synergy": ${INSTALL_SYNERGY},
   "install_nvidia": ${INSTALL_NVIDIA},
   "install_system76": ${INSTALL_SYSTEM76},
+  "install_fix_audio": ${INSTALL_FIX_AUDIO},
   "skip_vscode_extensions": ${SKIP_VSCODE},
   "omit_list_str": "${OMIT_LIST}"
 }

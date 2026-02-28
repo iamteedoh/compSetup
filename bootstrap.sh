@@ -18,6 +18,7 @@ DAVINCI_EDITION=""
 INSTALL_SYNERGY=false
 INSTALL_NVIDIA=false
 INSTALL_SYSTEM76=false
+INSTALL_FIX_AUDIO=false
 SKIP_VSCODE=false
 OMIT_LIST=""
 PACKAGE_SELECTOR_OMIT=""
@@ -226,6 +227,9 @@ show_custom_menu() {
             print_menu_line "5" "${ICON_GPU}" "Install NVIDIA Drivers" "$(get_status_badge $INSTALL_NVIDIA)" "Auto-detects GPU generation" 1
             print_menu_line "6" "${ICON_LAPTOP}" "Install System76 Support" "$(get_status_badge $INSTALL_SYSTEM76)" "System76 firmware, power, DKMS" 1
         fi
+        if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+            print_menu_line "7" "🔊" "Install Fix Audio (Douk DAC)" "$(get_status_badge $INSTALL_FIX_AUDIO)" "USB DAC recovery + WirePlumber config" 1
+        fi
         echo ""
         local pkg_badge
         if [[ -n "$PACKAGE_SELECTOR_OMIT" ]]; then
@@ -302,6 +306,11 @@ show_custom_menu() {
             6)
                 if [[ "$SELECTED_DISTRO" == "fedora" && "$ARCH" != "aarch64" ]]; then
                     if [[ "$INSTALL_SYSTEM76" == "true" ]]; then INSTALL_SYSTEM76=false; else INSTALL_SYSTEM76=true; fi
+                fi
+                ;;
+            7)
+                if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+                    if [[ "$INSTALL_FIX_AUDIO" == "true" ]]; then INSTALL_FIX_AUDIO=false; else INSTALL_FIX_AUDIO=true; fi
                 fi
                 ;;
             [Pp])
@@ -603,6 +612,9 @@ run_installation() {
         print_menu_line " " "${ICON_GPU}" "NVIDIA Drivers" "$(get_status_badge $INSTALL_NVIDIA)" "" 1
         print_menu_line " " "${ICON_LAPTOP}" "System76 Support" "$(get_status_badge $INSTALL_SYSTEM76)" "" 1
     fi
+    if [[ "$SELECTED_DISTRO" == "fedora" ]]; then
+        print_menu_line " " "🔊" "Fix Audio (Douk DAC)" "$(get_status_badge $INSTALL_FIX_AUDIO)" "" 1
+    fi
 
     # Packages being skipped
     if [[ -n "$OMIT_LIST" ]]; then
@@ -644,6 +656,7 @@ run_installation() {
     if [[ "$INSTALL_SYNERGY" == "true" ]]; then ARGS+=("--install-synergy"); fi
     if [[ "$INSTALL_NVIDIA" == "true" ]]; then ARGS+=("--install-nvidia"); fi
     if [[ "$INSTALL_SYSTEM76" == "true" ]]; then ARGS+=("--install-system76"); fi
+    if [[ "$INSTALL_FIX_AUDIO" == "true" ]]; then ARGS+=("--install-fix-audio"); fi
     if [[ "$SKIP_VSCODE" == "true" ]]; then ARGS+=("--skip-vscode-extensions"); fi
     if [[ -n "$OMIT_LIST" ]]; then ARGS+=("--omit-list" "$OMIT_LIST"); fi
 

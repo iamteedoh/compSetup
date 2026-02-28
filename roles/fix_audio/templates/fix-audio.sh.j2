@@ -1,0 +1,18 @@
+#!/bin/bash
+# Recovers Douk Audio DAC when PipeWire gets stuck in a broken state
+echo "Stopping PipeWire..."
+systemctl --user stop pipewire pipewire-pulse wireplumber
+sleep 2
+echo "Starting PipeWire..."
+systemctl --user start pipewire pipewire-pulse wireplumber
+sleep 2
+echo "Setting Douk Audio as default..."
+# Find the Douk Audio node ID (changes on restart)
+NODE_ID=$(wpctl status | grep "USB HIFI AUDIO Analog Stereo" | grep -oP '^\s*\K\d+')
+if [ -n "$NODE_ID" ]; then
+    wpctl set-default "$NODE_ID"
+    wpctl set-volume "$NODE_ID" 0.10
+    echo "Done. Default sink: USB HIFI AUDIO Analog Stereo (node $NODE_ID) at 10%"
+else
+    echo "Warning: Could not find Douk Audio node. Check 'wpctl status'"
+fi

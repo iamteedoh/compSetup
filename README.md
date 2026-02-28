@@ -66,6 +66,7 @@ By default, running `./bootstrap.sh` launches an interactive menu. On launch you
 | Install Synergy (KVM) | Install Synergy for sharing keyboard/mouse across machines |
 | Install NVIDIA Drivers | Auto-detect GPU and install proprietary drivers (Fedora only) |
 | Install System76 Support | Firmware daemon, power management, DKMS modules (Fedora only) |
+| Install Fix Audio (Douk DAC) | USB DAC recovery script + WirePlumber config (Fedora only) |
 | Customize Package Selection | Interactive TUI to cherry-pick which packages to install (filters by OS) |
 
 ### Command Line Flags (Headless Mode)
@@ -77,6 +78,7 @@ You can skip the TUI for automation or specific tasks:
 ./bootstrap.sh --install-synergy           # Install Synergy (KVM)
 ./bootstrap.sh --install-nvidia            # Install NVIDIA drivers (Fedora)
 ./bootstrap.sh --install-system76          # Install System76 support (Fedora)
+./bootstrap.sh --install-fix-audio         # Install Fix Audio / Douk DAC (Fedora)
 ./bootstrap.sh --omit "pkg1 pkg2"          # Add specific packages to blacklist
 ```
 
@@ -117,6 +119,14 @@ Full System76 hardware support for Fedora systems (e.g., Thelio, Launch keyboard
 - Enables and starts `system76-firmware-daemon`, `com.system76.PowerDaemon.service`, `system76-power-wake`, and `dkms`
 - Masks `power-profiles-daemon.service` to avoid conflicts with System76 power management
 - Adds the current user to the `adm` group for firmware access
+
+### Fix Audio - Douk DAC (`fix_audio`)
+Deploys a PipeWire recovery script and WirePlumber configuration for the Douk Audio USB DAC (C-Media "USB HIFI AUDIO").
+
+- Installs `fix-audio.sh` to `~/.local/bin/` — restarts PipeWire, sets the Douk DAC as default sink, and sets volume to 10%
+- Deploys `51-douk-audio.conf` to `~/.config/wireplumber/wireplumber.conf.d/` — prevents node suspension and adds USB buffer headroom
+- All files are user-space (no root required)
+- See [docs/fix-audio.md](docs/fix-audio.md) for full details
 
 ### Synergy (`synergy`)
 Cross-platform installation of Synergy for sharing a keyboard and mouse across machines.
