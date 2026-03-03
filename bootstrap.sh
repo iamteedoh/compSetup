@@ -86,6 +86,7 @@ get_status_badge() {
     else
         printf "${DIM}[OFF]${RESET}"
     fi
+      
 }
 
 # Print an aligned menu line with dot leader
